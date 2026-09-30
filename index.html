@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>새싹맨 디펜스</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main id="app">
+  <header id="top">
+    <h1>새싹맨 디펜스 <small id="heroTag" title="지휘관 렌더링 방식">…</small></h1>
+    <div class="stats">
+      <span title="골드">🪙 <b id="gold">0</b></span>
+      <span title="세계수 체력">🌳 <b id="lives">0</b></span>
+      <span title="웨이브">🌊 <b id="wave">0</b></span>
+      <button id="speedBtn" type="button">x1</button>
+    </div>
+  </header>
+
+  <div id="stage">
+    <canvas id="game" aria-label="디펜스 전장"></canvas>
+    <div id="toast" role="status"></div>
+    <div id="panel" hidden>
+      <div id="pName"></div><div id="pInfo"></div>
+      <div class="prow"><button id="upBtn" type="button"></button><button id="sellBtn" type="button"></button></div>
+    </div>
+    <div id="end" hidden><div><h2 id="endTitle"></h2><p id="endText"></p><button id="retry" type="button">다시 하기</button></div></div>
+  </div>
+
+  <footer id="bar">
+    <div class="group" id="towers">
+      <button class="tbtn" data-t="ballista" type="button"><img alt=""><span>가시 발사대<em>60</em></span></button>
+      <button class="tbtn" data-t="mortar" type="button"><img alt=""><span>폭발 씨앗포<em>90</em></span></button>
+      <button class="tbtn" data-t="vine" type="button"><img alt=""><span>덩굴 감옥<em>70</em></span></button>
+      <button class="tbtn" data-t="wall" type="button"><img alt=""><span>뿌리 장벽<em>45</em></span></button>
+    </div>
+    <div class="group" id="skills">
+      <button id="sk_burst" class="sk" type="button"><span>광합성 폭발</span><kbd>Q</kbd><i class="cdv"></i></button>
+      <button id="sk_root" class="sk" type="button"><span>덩굴 결계</span><kbd>W</kbd><i class="cdv"></i></button>
+      <button id="sk_bloom" class="sk" type="button"><span>생명의 개화</span><kbd>E</kbd><i class="cdv"></i></button>
+    </div>
+    <button id="startBtn" type="button">전투 시작</button>
+  </footer>
+  <p id="help">타워 선택 → 빛나는 설치대 클릭 · 설치된 타워를 눌러 강화/판매 · 스페이스: 웨이브 시작 · 새싹맨의 오라(초록 원) 안의 타워는 공격력 +25%</p>
+</main>
+<script type="module" src="js/game.js"></script>
+</body>
+</html>

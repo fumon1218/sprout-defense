@@ -4,13 +4,12 @@
 Dark gothic high fantasy, classic tower defense rules, isometric view.
 
 ## Run
-ES modules and GLB loading need a local web server (opening `index.html` directly will not work):
+Just open `index.html` in a browser (double-click). No server, build step or external libraries needed.
+Optional: `python3 -m http.server 8000` and open http://localhost:8000.
 
-```bash
-python3 -m http.server 8000
-# open http://localhost:8000
-```
-No build step and no external libraries. The hero is rendered from the GLB files with a small built-in WebGL viewer (`js/glbview.js`); if WebGL is unavailable the 2D sprite is used.
+The hero models are embedded in `assets/hero/hero_data.js` so the game also works from `file://`.
+After replacing `assets/hero/hero_stage*.glb`, run `python3 tools/build_hero_data.py`.
+`python3 tools/build_single.py out.html` builds a single self-contained page. The hero is rendered from the GLB files with a small built-in WebGL viewer (`js/glbview.js`); if WebGL is unavailable the 2D sprite is used.
 
 ## How to play
 - Pick a tower (1-4 keys or the bottom bar), then click a glowing build pad.
@@ -24,7 +23,7 @@ No build step and no external libraries. The hero is rendered from the GLB files
 index.html, css/, js/     game (game.js) and mini GLB viewer (glbview.js)
 assets/img/               transparent WebP sprites (towers, enemies, map tiles, hero art)
 assets/hero/              Sprout-man 3D models, reduced for real-time use (~20k triangles, ~2 MB each)
-tools/process_images.py   Gemini PNG -> transparent, cropped WebP sprites
+tools/                    process_images.py (PNG -> WebP sprites), build_hero_data.py, build_single.py
 ```
 
 ## Asset pipeline

@@ -27,7 +27,7 @@ function sh(gl, type, src) {
   return s;
 }
 
-export class GLBView {
+class GLBView {
   constructor(w = 288, h = 320) {
     this.canvas = document.createElement('canvas');
     this.canvas.width = w; this.canvas.height = h;
@@ -46,9 +46,10 @@ export class GLBView {
     this.aspect = w / h;
   }
 
-  async load(url) {
+  async load(url) { return this.loadBuffer(await (await fetch(url)).arrayBuffer()); }
+
+  async loadBuffer(buf) {
     const gl = this.gl;
-    const buf = await (await fetch(url)).arrayBuffer();
     const dv = new DataView(buf);
     if (dv.getUint32(0, true) !== 0x46546c67) throw new Error('not a GLB');
     const jl = dv.getUint32(12, true);
@@ -107,3 +108,5 @@ export class GLBView {
     return this.canvas;
   }
 }
+
+window.GLBView = GLBView;

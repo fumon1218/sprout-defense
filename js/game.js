@@ -1,4 +1,4 @@
-import { GLBView } from './glbview.js';
+// Classic script (works from file:// and http://). Requires js/glbview.js first.
 
 // ---------- constants ----------
 const TW = 112, TH = 56, N = 10, W = 1200, H = 740, OX = 600, OY = 120;
@@ -85,8 +85,10 @@ pads.delete(key(...HERO_CELL));
 const DECOR = new Set(['0,9', '9,0', '0,5', '9,3', '5,9', '4,6'].filter((k) => !pathCells.has(k) && !pads.has(k)));
 
 // ---------- assets ----------
+const imgSrc = (n) => (window.IMG_DATA && window.IMG_DATA[n]) || `assets/img/${n}.webp`;
+const b64buf = (b) => { const bin = atob(b), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
 const IMG = {};
-const loadImg = (n) => new Promise((res) => { const im = new Image(); im.onload = () => { IMG[n] = im; res(); }; im.onerror = () => res(); im.src = `assets/img/${n}.webp`; });
+const loadImg = (n) => new Promise((res) => { const im = new Image(); im.onload = () => { IMG[n] = im; res(); }; im.onerror = () => res(); im.src = imgSrc(n); });
 const IMG_NAMES = ['map_pad', 'map_core', 'map_path', 'map_decor', 'tower_ballista', 'tower_mortar', 'tower_vine', 'tower_wall',
   'enemy_crawler', 'enemy_soldier', 'enemy_flyer', 'enemy_golem', 'enemy_boss', 'hero_stage1', 'hero_stage2', 'hero_stage3'];
 
@@ -408,7 +410,7 @@ addEventListener('keydown', (e) => {
 // ---------- boot ----------
 async function boot() {
   await Promise.all(IMG_NAMES.map(loadImg));
-  document.querySelectorAll('.tbtn img').forEach((im) => { im.src = `assets/img/${TOWERS[im.closest('.tbtn').dataset.t].img}.webp`; });
+  document.querySelectorAll('.tbtn img').forEach((im) => { im.src = imgSrc(TOWERS[im.closest('.tbtn').dataset.t].img); });
   refreshHUD();
   let last = performance.now();
   const loop = (now) => { const dt = Math.min(0.05, (now - last) / 1000); last = now; for (let s = 0; s < S.speed; s++) update(dt); render(); if (S.frame !== undefined) S.frame++; requestAnimationFrame(loop); };
@@ -416,7 +418,7 @@ async function boot() {
   // 3D hero (WebGL); falls back to the 2D sprite when unavailable
   try {
     hero.view = new GLBView(288, 320);
-    await Promise.all([1, 2, 3].map(async (n) => { hero.models[n] = await hero.view.load(`assets/hero/hero_stage${n}.glb`); }));
+    await Promise.all([1, 2, 3].map(async (n) => { hero.models[n] = window.HERO_GLB ? await hero.view.loadBuffer(b64buf(window.HERO_GLB[n])) : await hero.view.load(`assets/hero/hero_stage${n}.glb`); }));
     hero.ok = true; $('heroTag').textContent = '3D';
   } catch (err) { console.warn('3D hero disabled:', err); $('heroTag').textContent = '2D'; }
   window.__game = { S, pads, iso, hero, update, render, startWave, ready: true };

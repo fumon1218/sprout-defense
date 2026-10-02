@@ -285,7 +285,7 @@ function seedDemo() {
     ['2,2','ballista',2,'first'],
     ['5,3','vine',2,'strong'],
     ['6,6','mortar',2,'weak'],
-    ['4,8','wall',2,'first']
+    ['4,6','wall',2,'first']
   ];
   for (const [k,type,lvl,targetMode] of demoTowers) {
     if (!pads.has(k)) continue;

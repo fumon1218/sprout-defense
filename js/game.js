@@ -199,6 +199,7 @@ function applyDamage(e, amount, kind = 'physical') {
   let dealt = amount;
   if (kind === 'physical' && d.armor) dealt *= (1 - d.armor);
   e.hp -= dealt;
+  e.hitT = 0.14;
   return dealt;
 }
 function chooseTarget(t, candidates) {
@@ -224,7 +225,7 @@ function syncBarracks(t, towerKey) {
   while (own.length < wanted) {
     const slot = own.length;
     const hp = 90 + 40 * (t.lvl - 1);
-    const unit = { towerKey, slot, homeD: homeD + (slot - (wanted - 1) / 2) * 0.16, hp, max: hp, cd: 0, dead: false, respawn: 0, target: null };
+    const unit = { towerKey, slot, homeD: homeD + (slot - (wanted - 1) / 2) * 0.16, hp, max: hp, cd: 0, dead: false, respawn: 0, target: null, attackT: 0, hurtT: 0, stepT: slot * 0.45 };
     S.guards.push(unit); own.push(unit);
   }
   for (const unit of own) {
@@ -270,7 +271,7 @@ function seedDemo() {
 }
 function spawn(type) {
   const d = ENEMIES[type], scale = 1 + 0.16 * (S.wave - 1);
-  const e = { type, hp: d.hp * scale, max: d.hp * scale, d: 0, slow: 1, root: 0, dead: false };
+  const e = { type, hp: d.hp * scale, max: d.hp * scale, d: 0, slow: 1, root: 0, dead: false, hitT: 0, attackT: 0, walkT: Math.random() * 6.28 };
   if (type === 'boss') e.special = 4.5;
   S.enemies.push(e);
   if (type === 'boss') toast('보스 등장! 오우거 군주가 진격합니다!');
@@ -295,6 +296,9 @@ function update(dt) {
   for (const e of S.enemies) {
     e.slow = 1;
     e.blocked = false;
+    e.hitT = Math.max(0, (e.hitT || 0) - dt);
+    e.attackT = Math.max(0, (e.attackT || 0) - dt);
+    e.walkT = (e.walkT || 0) + dt * (ENEMIES[e.type].fly ? 5.5 : 4.2);
   }
   // Barracks guards engage nearby ground enemies and physically stop them.
   for (const guard of S.guards) {
@@ -316,21 +320,28 @@ function update(dt) {
       }
       guard.target = target;
     }
+    guard.attackT = Math.max(0, (guard.attackT || 0) - dt);
+    guard.hurtT = Math.max(0, (guard.hurtT || 0) - dt);
+    guard.stepT = (guard.stepT || 0) + dt * (target ? 6.2 : 3.3);
     if (target) {
       target.blocked = true;
+      target.attackT = Math.max(target.attackT || 0, 0.18);
       guard.cd -= dt;
       if (guard.cd <= 0) {
+        guard.attackT = 0.18;
         guard.cd = Math.max(0.55, 0.95 - 0.08 * (tower.lvl - 1));
         applyDamage(target, (15 + 8 * (tower.lvl - 1)) * heroBuff(tower), 'physical');
         const p = posAt(target.d); addFx({ gx:p[0], gy:p[1], r:0.22, dur:0.18, color:'255,230,170', ring:true, alpha:0.8 });
       }
       const ed = ENEMIES[target.type];
       guard.hp -= (7 + ed.dmg * 5) * dt;
+      guard.hurtT = 0.08;
       if (guard.hp <= 0) { guard.dead = true; guard.respawn = Math.max(5, 9 - tower.lvl); guard.target = null; }
     }
   }
   S.guards = S.guards.filter((x) => !x.remove);
   for (const t of S.towers.values()) {
+    t.attackT = Math.max(0, (t.attackT || 0) - dt);
     const st = towerStats(t), [tx, ty] = [t.i + 0.5, t.j + 0.5];
     const slowing = TOWERS[t.type].slow;
     if (slowing || TOWERS[t.type].dot) {
@@ -357,6 +368,7 @@ function update(dt) {
         const best = chooseTarget(t, candidates);
         if (best) {
           t.cool = st.cd;
+          t.attackT = t.type === 'mortar' ? 0.28 : 0.18;
           const dmg = st.dmg * heroBuff(t);
           if (t.type === 'ballista') {
             applyDamage(best, dmg, 'physical');
@@ -516,6 +528,24 @@ function sprite(name, x, y, h, flip) { // bottom-centre anchored
   const w = im.width * h / im.height;
   ctx.save(); ctx.translate(x, y); if (flip) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore();
 }
+function spriteMotion(name, x, y, h, opt = {}) {
+  const im = IMG[name]; if (!im) return;
+  const sx = (opt.flip ? -1 : 1) * (opt.sx || 1), sy = opt.sy || 1;
+  const w = im.width * h / im.height;
+  ctx.save();
+  ctx.globalAlpha = opt.alpha == null ? 1 : opt.alpha;
+  ctx.translate(x + (opt.dx || 0), y + (opt.dy || 0));
+  ctx.rotate(opt.rot || 0);
+  ctx.scale(sx, sy);
+  ctx.drawImage(im, -w / 2, -h, w, h);
+  if (opt.flash) {
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.globalAlpha = Math.min(0.7, opt.flash);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-w / 2, -h, w, h);
+  }
+  ctx.restore();
+}
 function hpBar(x, y, w, f) {
   ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillRect(x - w / 2 - 1, y - 1, w + 2, 6);
   ctx.fillStyle = f > 0.5 ? '#7bd66a' : f > 0.25 ? '#e0c04a' : '#e05a4a'; ctx.fillRect(x - w / 2, y, w * Math.max(0, f), 4);
@@ -527,7 +557,10 @@ function drawHero(c) {
     const cvs = hero.view.render(hero.models[st], Math.sin(S.time * 0.9) * 0.45);
     const w = hgt * (cvs.width / cvs.height);
     ctx.drawImage(cvs, c.x - w / 2, c.y + 14 - hgt, w, hgt);
-  } else sprite('hero_stage' + st, c.x, c.y + 14, hgt);
+  } else {
+    const breathe = Math.sin(S.time * 2.1);
+    spriteMotion('hero_stage' + st, c.x, c.y + 14, hgt, {dy:-Math.abs(breathe)*2, sx:1+breathe*0.008, sy:1-breathe*0.006, rot:Math.sin(S.time*0.9)*0.008});
+  }
 }
 function heroLabel() {
   const c = iso(HERO_CELL[0] + 0.5, HERO_CELL[1] + 0.5);
@@ -564,7 +597,15 @@ function render() {
   for (const t of S.towers.values()) {
     const c = iso(t.i + 0.5, t.j + 0.5), d = TOWERS[t.type];
     items.push({ d: t.i + t.j + 1, f: () => {
-      sprite(towerSpriteName(t), c.x, c.y + 10, d.h * (1 + 0.07 * (t.lvl - 1)));
+      const atk = t.attackT || 0;
+      let dx = 0, dy = 0, rot = 0, sx = 1, sy = 1;
+      if (atk > 0) {
+        const p = atk / (t.type === 'mortar' ? 0.28 : 0.18);
+        if (t.type === 'mortar') { dy = 5 * Math.sin(p * Math.PI); sx = 1 + 0.05 * p; sy = 1 - 0.06 * p; }
+        else if (t.type === 'ballista') { dx = -4 * p; rot = -0.025 * p; }
+        else if (t.type === 'vine') { dy = -3 * Math.sin(p * Math.PI); sx = sy = 1 + 0.035 * Math.sin(p * Math.PI); }
+      }
+      spriteMotion(towerSpriteName(t), c.x, c.y + 10, d.h * (1 + 0.07 * (t.lvl - 1)), {dx,dy,rot,sx,sy});
       for (let l = 0; l < t.lvl; l++) { ctx.fillStyle = '#ffd95a'; ctx.beginPath(); ctx.arc(c.x - 12 + l * 12, c.y + 24, 3.6, 0, 7); ctx.fill(); }
       if (heroBuff(t) > 1) { ctx.fillStyle = 'rgba(120,255,160,.9)'; ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('▲', c.x + 30, c.y + 26); }
     } });
@@ -575,7 +616,17 @@ function render() {
     const [gx, gy] = posAt(targetD), c = iso(gx, gy);
     items.push({ d: gx + gy + 0.46 + guard.slot * 0.001, f: () => {
       const dx = (guard.slot % 2 === 0 ? -9 : 9);
-      sprite('friendly_soldier', c.x + dx, c.y + 5, 54, guard.slot % 2 === 1);
+      const attacking = (guard.attackT || 0) > 0;
+      const swing = attacking ? Math.sin((guard.attackT / 0.18) * Math.PI) : 0;
+      const step = guard.target ? Math.sin(guard.stepT || 0) : Math.sin((guard.stepT || 0) * 0.45) * 0.35;
+      spriteMotion('friendly_soldier', c.x + dx, c.y + 5, 54, {
+        flip: guard.slot % 2 === 1,
+        dy: -Math.abs(step) * 2,
+        rot: attacking ? (guard.slot % 2 ? -1 : 1) * 0.12 * swing : step * 0.02,
+        sx: 1 + 0.04 * swing,
+        sy: 1 - 0.04 * swing,
+        flash: guard.hurtT > 0 ? 0.45 : 0
+      });
       hpBar(c.x + dx, c.y - 55, 30, guard.hp / guard.max);
     }});
   }
@@ -583,8 +634,18 @@ function render() {
     const [gx, gy] = posAt(e.d), c = iso(gx, gy), d = ENEMIES[e.type], lift = d.fly ? 34 + Math.sin(S.time * 6 + e.d) * 4 : 0;
     items.push({ d: gx + gy + 0.5, f: () => {
       if (d.fly) { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(c.x, c.y, 22, 8, 0, 0, 7); ctx.fill(); }
-      const bob = d.fly ? 0 : Math.abs(Math.sin(S.time * 5 + e.d * 3)) * 3;
-      sprite(d.img, c.x, c.y + 6 - lift - bob, d.h);
+      const phase = e.walkT || 0;
+      const weight = e.type === 'boss' ? 0.45 : e.type === 'golem' ? 0.6 : e.type === 'armored' ? 0.75 : 1;
+      const walkBob = d.fly ? 0 : Math.abs(Math.sin(phase)) * (3.4 * weight);
+      const sway = d.fly ? Math.sin(phase * 0.8) * 0.06 : Math.sin(phase * 0.5) * 0.025 * weight;
+      const atk = e.attackT > 0 ? Math.sin((e.attackT / 0.18) * Math.PI) : 0;
+      const bossBreath = e.type === 'boss' ? 1 + Math.sin(S.time * 1.7) * 0.012 : 1;
+      spriteMotion(d.img, c.x, c.y + 6 - lift - walkBob, d.h, {
+        rot: sway + atk * 0.08,
+        sx: bossBreath * (1 + atk * 0.035),
+        sy: (2 - bossBreath) * (1 - atk * 0.025),
+        flash: e.hitT > 0 ? Math.min(0.65, e.hitT * 4.2) : 0
+      });
       if (e.type === 'armored') {
         ctx.save(); ctx.fillStyle = 'rgba(160,190,220,.92)'; ctx.strokeStyle = 'rgba(50,75,95,.95)'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(c.x + 24, c.y - lift - d.h + 7); ctx.lineTo(c.x + 32, c.y - lift - d.h + 11);

@@ -473,14 +473,24 @@ function update(dt) {
   // shots
   for (const s of S.shots) {
     s.t += dt;
-    if (s.kind === 'seed' && !s.done && s.t >= s.dur) {
+    if (!s.done && s.t >= s.dur) {
       s.done = true;
-      for (const e of S.enemies) { const [ex, ey] = posAt(e.d); if (Math.hypot(ex - s.to[0], ey - s.to[1]) <= s.splash) applyDamage(e, s.dmg, 'physical'); }
-      addFx({ gx: s.to[0], gy: s.to[1], r: s.splash, dur: 0.4, color: '255,150,60', ring: true, alpha: 0.7, fill: true });
-      addFx({ kind:'blastImpact', gx:s.to[0], gy:s.to[1], dur:.48, seed:s.to[0]*37+s.to[1]*71 });
+      if (s.kind === 'seed') {
+        for (const e of S.enemies) { const [ex, ey] = posAt(e.d); if (Math.hypot(ex - s.to[0], ey - s.to[1]) <= s.splash) applyDamage(e, s.dmg, 'physical'); }
+        addFx({ gx: s.to[0], gy: s.to[1], r: s.splash, dur: 0.4, color: '255,150,60', ring: true, alpha: 0.7, fill: true });
+        addFx({ kind:'blastImpact', gx:s.to[0], gy:s.to[1], dur:.48, seed:s.to[0]*37+s.to[1]*71 });
+      } else if (s.kind === 'magic') {
+        addFx({ kind:'magicImpact', gx:s.to[0], gy:s.to[1], dur:.42, seed:s.to[0]*53+s.to[1]*29 });
+      } else if (s.kind === 'bolt') {
+        addFx({ kind:'arrowImpact', gx:s.to[0], gy:s.to[1], dur:.24, seed:s.to[0]*41+s.to[1]*17 });
+      } else if (s.kind === 'potion') {
+        S.lives = Math.min(START_LIVES, S.lives + (s.heal || 3));
+        addFx({ kind:'potionBreak', gx:s.to[0], gy:s.to[1], dur:.58, seed:s.to[0]*61+s.to[1]*43 });
+        refreshHUD();
+      }
     }
   }
-  S.shots = S.shots.filter((s) => s.t < s.dur + (s.kind === 'seed' ? 0.02 : 0));
+  S.shots = S.shots.filter((s) => s.t < s.dur + (s.kind === 'seed' ? .02 : .08));
   for (const f of S.fx) f.t += dt;
   S.fx = S.fx.filter((f) => f.t < f.dur);
 }
@@ -503,7 +513,7 @@ function useSkill(k) {
     for (const e of S.enemies) { const [ex, ey] = posAt(e.d); if (Math.hypot(ex - hx, ey - hy) <= 3.8) e.root = 4; }
     addFx({ gx: hx, gy: hy, r: 3.8, dur: 0.8, color: '90,200,120', ring: true, fill: true, alpha: 0.6 });
   } else if (k === 'bloom') {
-    S.lives = Math.min(START_LIVES, S.lives + 3); addFx({ gx: CORE[0] + 0.5, gy: CORE[1] + 0.5, r: 1.6, dur: 0.9, color: '255,230,120', ring: true, fill: true, alpha: 0.7 });
+    S.shots.push({ kind:'potion', from:[hx,hy], to:[CORE[0]+.5,CORE[1]+.5], t:0, dur:.78, heal:3, spin:0 });
   }
   S.cd[k] = SKILLS[k].cd; refreshHUD();
 }
@@ -700,6 +710,32 @@ function drawCleanImpactFx(f){
       const x=c.x+Math.cos(a)*dist, y=c.y+Math.sin(a)*dist*.55-10*p;
       ctx.fillStyle=`rgba(255,135,55,${fade*.8})`; ctx.beginPath(); ctx.arc(x,y,2.2+2*fade,0,Math.PI*2); ctx.fill();
     }
+  }else if(f.kind==='magicImpact'){
+    const rr=12+34*p;
+    ctx.strokeStyle=`rgba(130,205,255,${fade*.9})`; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(c.x,c.y-12,rr,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle=`rgba(155,225,255,${fade*.22})`; ctx.beginPath(); ctx.arc(c.x,c.y-12,rr*.7,0,Math.PI*2); ctx.fill();
+    for(let i=0;i<7;i++){
+      const a=i/7*Math.PI*2+fxRand(seed,i)*.25, dist=(8+30*p)*(0.7+fxRand(seed,i+10)*.45);
+      ctx.fillStyle=`rgba(190,240,255,${fade*.8})`; ctx.beginPath(); ctx.arc(c.x+Math.cos(a)*dist,c.y-12+Math.sin(a)*dist,2.2,0,Math.PI*2); ctx.fill();
+    }
+  }else if(f.kind==='arrowImpact'){
+    const rr=6+13*p;
+    ctx.strokeStyle=`rgba(255,238,175,${fade*.9})`; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(c.x,c.y-18,rr,0,Math.PI*2); ctx.stroke();
+    for(let i=0;i<4;i++){
+      const a=i/4*Math.PI*2+fxRand(seed,i)*.3;
+      ctx.beginPath(); ctx.moveTo(c.x+Math.cos(a)*5,c.y-18+Math.sin(a)*5);
+      ctx.lineTo(c.x+Math.cos(a)*(16+10*p),c.y-18+Math.sin(a)*(16+10*p)); ctx.stroke();
+    }
+  }else if(f.kind==='potionBreak'){
+    const rr=15+32*p;
+    ctx.fillStyle=`rgba(105,235,150,${fade*.20})`; ctx.beginPath(); ctx.ellipse(c.x,c.y+2,rr,rr*.36,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=`rgba(155,255,185,${fade*.9})`; ctx.lineWidth=3; ctx.beginPath(); ctx.ellipse(c.x,c.y+2,rr,rr*.36,0,0,Math.PI*2); ctx.stroke();
+    for(let i=0;i<8;i++){
+      const a=i/8*Math.PI*2+fxRand(seed,i)*.25, dist=(7+35*p)*(0.7+fxRand(seed,i+12)*.4);
+      ctx.fillStyle=`rgba(105,220,145,${fade*.8})`; ctx.beginPath(); ctx.arc(c.x+Math.cos(a)*dist,c.y+Math.sin(a)*dist*.35-8*p,2.5+1.5*fade,0,Math.PI*2); ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -880,9 +916,21 @@ function render() {
       ctx.strokeStyle = `rgba(245,225,155,${1 - s.t / s.dur})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(a.x, a.y - 60); ctx.lineTo(b.x, b.y - 30); ctx.stroke();
     } else if (s.kind === 'magic') {
       const p = Math.min(1, s.t / s.dur), x = a.x + (b.x - a.x) * p, y = a.y - 65 + (b.y - a.y + 40) * p;
-      if (!drawSpriteCentered('projectile_magic', x, y, 30)) {
+      const magicH=30+Math.sin(p*Math.PI*6)*3;
+      if (!drawSpriteCentered('projectile_magic', x, y, magicH)) {
         const glow = 1 - p * 0.45; ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = '#5cc8ff'; ctx.fillStyle = `rgba(100,170,255,${glow})`; ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.restore();
       }
+    } else if (s.kind === 'potion') {
+      const p=Math.min(1,s.t/s.dur), x=a.x+(b.x-a.x)*p, y=a.y-80+(b.y-a.y+80)*p-Math.sin(p*Math.PI)*120;
+      const ang=p*Math.PI*5.5;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+      ctx.fillStyle='#e8fff2'; ctx.strokeStyle='rgba(55,90,65,.95)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.roundRect(-7,-13,14,22,5); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#70df9b'; ctx.beginPath(); ctx.roundRect(-5,-1,10,8,3); ctx.fill();
+      ctx.fillStyle='#d9b36c'; ctx.fillRect(-4,-18,8,6);
+      ctx.restore();
+      const shadowP=Math.sin(p*Math.PI);
+      ctx.fillStyle=`rgba(0,0,0,${.12+.13*p})`; ctx.beginPath(); ctx.ellipse(x,y+70+70*shadowP,10+5*p,3+2*p,0,0,Math.PI*2); ctx.fill();
     } else {
       const p = Math.min(1, s.t / s.dur), x = a.x + (b.x - a.x) * p, y = a.y - 70 + (b.y - a.y + 70) * p - Math.sin(p * Math.PI) * 90;
       if (!drawSpriteCentered('projectile_cannon', x, y, 26)) {

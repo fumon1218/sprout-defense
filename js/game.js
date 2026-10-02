@@ -839,7 +839,15 @@ function render() {
     ctx.save(); ctx.beginPath(); ctx.ellipse(p.x,p.y,39,19,0,0,Math.PI*2);
     ctx.strokeStyle='rgba(120,255,160,.55)'; ctx.lineWidth=2; ctx.setLineDash([6,5]); ctx.stroke(); ctx.restore();
   }
-  if (S.sel) { const t = S.towers.get(S.sel); if (t) ring(t.i + 0.5, t.j + 0.5, towerStats(t).range, '120,255,160', 0.8, true); }
+  if (S.sel) {
+    const t = S.towers.get(S.sel);
+    if (t) {
+      const p = padScreen(S.sel), r = towerStats(t).range;
+      ctx.save(); ctx.beginPath(); ctx.ellipse(p.x, p.y, RX*r, RY*r, 0, 0, Math.PI*2);
+      ctx.fillStyle='rgba(120,255,160,.10)'; ctx.fill();
+      ctx.strokeStyle='rgba(120,255,160,.80)'; ctx.lineWidth=2; ctx.stroke(); ctx.restore();
+    }
+  }
   // ground effects
   for (const f of S.fx) if (f.ring) { const p = f.t / f.dur; ring(f.gx, f.gy, f.r * (f.fill ? 0.6 + 0.4 * p : 1), f.color, (f.alpha || 0.5) * (1 - p), f.fill); }
   // depth-sorted entities

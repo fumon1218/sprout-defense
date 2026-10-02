@@ -18,13 +18,13 @@ const TOWERS = {
   wall:     { name: '병영',       img: 'tower_wall',     cost: 45, range: 1.8, barracks: true, h: 66, desc: '병사를 배치해 지상 적을 막는 방어 거점' },
 };
 const ENEMIES = {
-  crawler: { name: '고블린 정찰병', img: 'enemy_crawler', hp: 48,  speed: 1.35, reward: 6,  h: 58,  dmg: 1 },
-  soldier: { name: '오크 전사',     img: 'enemy_soldier', hp: 130, speed: 0.92, reward: 11, h: 88,  dmg: 1 },
-  armored: { name: '갑옷 오크',     img: 'enemy_armored', hp: 220, speed: 0.72, reward: 17, h: 96,  dmg: 2, armor: 0.45 },
-  shaman:  { name: '오크 샤먼',     img: 'enemy_shaman',  hp: 115, speed: 0.82, reward: 15, h: 90,  dmg: 1, heal: 9 },
-  flyer:   { name: '동굴 박쥐',     img: 'enemy_flyer',   hp: 76,  speed: 1.55, reward: 9,  h: 60,  dmg: 1, fly: true },
-  golem:   { name: '산악 트롤',     img: 'enemy_golem',   hp: 440, speed: 0.58, reward: 28, h: 118, dmg: 3 },
-  boss:    { name: '오우거 군주',   img: 'enemy_boss',    hp: 2300, speed: 0.48, reward: 150, h: 160, dmg: 8 },
+  crawler: { name: '고블린 정찰병', img: 'enemy_crawler', hp: 48,  speed: 1.35, reward: 6,  h: 58,  dmg: 1, motion:{bob:4.8,sway:.045,tempo:5.5,weight:.55} },
+  soldier: { name: '오크 전사',     img: 'enemy_soldier', hp: 130, speed: 0.92, reward: 11, h: 88,  dmg: 1, motion:{bob:3.0,sway:.028,tempo:4.0,weight:.85} },
+  armored: { name: '갑옷 오크',     img: 'enemy_armored', hp: 220, speed: 0.72, reward: 17, h: 96,  dmg: 2, armor: 0.45, motion:{bob:2.1,sway:.016,tempo:3.2,weight:1.2} },
+  shaman:  { name: '오크 샤먼',     img: 'enemy_shaman',  hp: 115, speed: 0.82, reward: 15, h: 90,  dmg: 1, heal: 9, motion:{bob:2.8,sway:.035,tempo:3.5,weight:.75} },
+  flyer:   { name: '동굴 박쥐',     img: 'enemy_flyer',   hp: 76,  speed: 1.55, reward: 9,  h: 60,  dmg: 1, fly: true, motion:{bob:5.5,sway:.075,tempo:7.0,weight:.35} },
+  golem:   { name: '산악 트롤',     img: 'enemy_golem',   hp: 440, speed: 0.58, reward: 28, h: 118, dmg: 3, motion:{bob:1.8,sway:.014,tempo:2.6,weight:1.45} },
+  boss:    { name: '오우거 군주',   img: 'enemy_boss',    hp: 2300, speed: 0.48, reward: 150, h: 160, dmg: 8, motion:{bob:1.2,sway:.01,tempo:2.1,weight:1.75} },
 };
 const WAVES = [
   [['crawler', 8]],
@@ -163,7 +163,7 @@ const ctx = cv.getContext('2d');
 const $ = (id) => document.getElementById(id);
 const S = {
   gold: START_GOLD, lives: START_LIVES, wave: 0, phase: 'prep', speed: 1,
-  towers: new Map(), guards: [], enemies: [], shots: [], fx: [], queue: [], spawnT: 0,
+  towers: new Map(), guards: [], enemies: [], deaths: [], shots: [], fx: [], queue: [], spawnT: 0,
   build: null, sel: null, hover: null, time: 0, cd: { burst: 0, root: 0, bloom: 0 },
   heroStage: 1, over: false,
 };
@@ -298,7 +298,8 @@ function update(dt) {
     e.blocked = false;
     e.hitT = Math.max(0, (e.hitT || 0) - dt);
     e.attackT = Math.max(0, (e.attackT || 0) - dt);
-    e.walkT = (e.walkT || 0) + dt * (ENEMIES[e.type].fly ? 5.5 : 4.2);
+    const motion = ENEMIES[e.type].motion || {};
+    e.walkT = (e.walkT || 0) + dt * (motion.tempo || (ENEMIES[e.type].fly ? 5.5 : 4.2));
   }
   // Barracks guards engage nearby ground enemies and physically stop them.
   for (const guard of S.guards) {
@@ -425,9 +426,17 @@ function update(dt) {
     if (e.d >= total) {
       e.dead = true; S.lives -= d.dmg; addFx({ gx: CORE[0] + 0.5, gy: CORE[1] + 0.5, r: 1.2, dur: 0.5, color: '255,90,90', ring: true, alpha: 0.6 });
       refreshHUD(); refreshBossHud(); if (S.lives <= 0) endGame(false);
-    } else if (e.hp <= 0) { e.dead = true; S.gold += d.reward; const p = posAt(e.d); addFx({ gx: p[0], gy: p[1], text: '+' + d.reward, dur: 0.8, color: '255,214,90' }); refreshHUD(); refreshBossHud(); }
+    } else if (e.hp <= 0) {
+      e.dead = true;
+      S.deaths.push({ type:e.type, d:e.d, t:0, dur:e.type === 'boss' ? 1.2 : 0.55, phase:e.walkT || 0 });
+      S.gold += d.reward; const p = posAt(e.d);
+      addFx({ gx: p[0], gy: p[1], text: '+' + d.reward, dur: 0.8, color: '255,214,90' });
+      refreshHUD(); refreshBossHud();
+    }
   }
   S.enemies = S.enemies.filter((e) => !e.dead);
+  for (const d of S.deaths) d.t += dt;
+  S.deaths = S.deaths.filter((d) => d.t < d.dur);
   refreshBossHud();
   // shots
   for (const s of S.shots) {
@@ -630,14 +639,30 @@ function render() {
       hpBar(c.x + dx, c.y - 55, 30, guard.hp / guard.max);
     }});
   }
+  for (const dead of S.deaths) {
+    const [gx, gy] = posAt(dead.d), c = iso(gx, gy), d = ENEMIES[dead.type];
+    const p = Math.min(1, dead.t / dead.dur);
+    const fall = dead.type === 'boss' ? 0.65 : 1;
+    items.push({ d: gx + gy + 0.49, f: () => {
+      if (d.fly) {
+        ctx.fillStyle = `rgba(0,0,0,${0.22*(1-p)})`; ctx.beginPath(); ctx.ellipse(c.x, c.y, 22, 8, 0, 0, 7); ctx.fill();
+      }
+      spriteMotion(d.img, c.x, c.y + 6 + p * (d.fly ? 30 : 5), d.h, {
+        rot:(d.fly ? .7 : .95) * p * fall,
+        sx:1 + .08*p,
+        sy:1 - .12*p,
+        alpha:1-p,
+        flash:p < .18 ? .55 : 0
+      });
+    }});
+  }
   for (const e of S.enemies) {
     const [gx, gy] = posAt(e.d), c = iso(gx, gy), d = ENEMIES[e.type], lift = d.fly ? 34 + Math.sin(S.time * 6 + e.d) * 4 : 0;
     items.push({ d: gx + gy + 0.5, f: () => {
       if (d.fly) { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(c.x, c.y, 22, 8, 0, 0, 7); ctx.fill(); }
-      const phase = e.walkT || 0;
-      const weight = e.type === 'boss' ? 0.45 : e.type === 'golem' ? 0.6 : e.type === 'armored' ? 0.75 : 1;
-      const walkBob = d.fly ? 0 : Math.abs(Math.sin(phase)) * (3.4 * weight);
-      const sway = d.fly ? Math.sin(phase * 0.8) * 0.06 : Math.sin(phase * 0.5) * 0.025 * weight;
+      const phase = e.walkT || 0, motion = d.motion || {};
+      const walkBob = d.fly ? Math.sin(phase) * (motion.bob || 4) : Math.abs(Math.sin(phase)) * (motion.bob || 3);
+      const sway = Math.sin(phase * (d.fly ? .72 : .5)) * (motion.sway || .025);
       const atk = e.attackT > 0 ? Math.sin((e.attackT / 0.18) * Math.PI) : 0;
       const bossBreath = e.type === 'boss' ? 1 + Math.sin(S.time * 1.7) * 0.012 : 1;
       spriteMotion(d.img, c.x, c.y + 6 - lift - walkBob, d.h, {

@@ -9,12 +9,12 @@
 <body>
 <main id="app">
   <header id="top">
-    <h1>새싹 왕국 디펜스 <small id="heroTag" title="Stage 1 · 초원 왕국">초원 왕국</small></h1>
-    <div class="stats">
-      <span title="골드">🪙 <b id="gold">0</b></span>
-      <span title="왕국 방어력">🌳 <b id="lives">0</b></span>
-      <span title="웨이브">🌊 <b id="wave">0</b></span>
-      <button id="speedBtn" type="button">x1</button>
+    <div class="brand"><span class="crest" aria-hidden="true">🌱</span><h1>새싹 왕국 디펜스 <small id="heroTag" title="Stage 1 · 초원 왕국">초원 왕국</small></h1></div>
+    <div class="stats" aria-label="전투 상태">
+      <span class="stat gold" title="골드"><i>●</i><b id="gold">0</b></span>
+      <span class="stat lives" title="왕국 방어력"><i>♥</i><b id="lives">0</b></span>
+      <span class="stat wave" title="웨이브"><i>⚑</i><b id="wave">0</b></span>
+      <button id="speedBtn" class="roundBtn" type="button" aria-label="게임 속도">×1</button>
     </div>
   </header>
 
@@ -31,7 +31,7 @@
     <div id="end" hidden><div><h2 id="endTitle"></h2><p id="endText"></p><button id="retry" type="button">다시 하기</button></div></div>
   </div>
 
-  <footer id="bar">
+  <footer id="bar" aria-label="전투 메뉴"><div class="barTitle">TOWER DEFENSE</div>
     <div class="group" id="towers">
       <button class="tbtn" data-t="ballista" type="button"><img alt=""><span>궁수 타워<em>60</em></span></button>
       <button class="tbtn" data-t="mortar" type="button"><img alt=""><span>포병 타워<em>90</em></span></button>

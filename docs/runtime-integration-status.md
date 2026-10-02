@@ -32,3 +32,14 @@ An Excel row is counted as runtime-complete only when:
 9. Full 10-wave regression test and final 166/166 audit
 
 Do not report 100% until every row satisfies the definition above.
+
+
+## Library import audit — 2026-10-03
+
+- Excel worksheet `01_전체자산목록`: 167 worksheet rows = 1 header + **166 asset rows**.
+- Current ChatGPT Library image files under `/타워 디펜스 게임`: **144**.
+- Categorized copies committed under `assets/library/`: **144 WebP files**.
+- Repository image files under `assets/` after import: **176** (includes the pre-existing runtime/legacy images).
+- Import archive was removed after extraction; no temporary tarball remains in the asset branch.
+- Category counts: animations 15, bosses 5, enemies 9, environment 8, heroes 1, heroes_units 3, icons 10, maps 8, menu 6, projectiles 6, qa_misc 28, skills 1, towers 28, ui 5, units 3, vfx 8.
+- Important: this completes the **Library-file upload**, not the 166-row canonical runtime integration. Several Library images are sprite sheets/composite sets that map to multiple Excel rows and still need extraction/binding/QA before runtime completion can be claimed.

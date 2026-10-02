@@ -1094,7 +1094,7 @@ cv.addEventListener('pointerdown', (ev) => {
 document.querySelectorAll('.tbtn').forEach((b) => b.addEventListener('click', () => { S.build = S.build === b.dataset.t ? null : b.dataset.t; S.sel = null; refreshHUD(); }));
 for (const k in SKILLS) $('sk_' + k).addEventListener('click', () => useSkill(k));
 $('startBtn').addEventListener('click', startWave);
-$('speedBtn').addEventListener('click', () => { S.speed = S.speed === 1 ? 2 : 1; $('speedBtn').textContent = `x${S.speed}`; });
+$('speedBtn').addEventListener('click', () => { S.speed = S.speed === 1 ? 2 : 1; $('speedBtn').textContent = `×${S.speed}`; });
 $('upBtn').addEventListener('click', () => { const t = S.towers.get(S.sel); if (!t || t.lvl >= 3 || S.gold < upgradeCost(t)) return; S.gold -= upgradeCost(t); t.lvl++; syncBarracks(t, S.sel); addFx({ gx: t.i + 0.5, gy: t.j + 0.5, r: 1, dur: 0.5, color: '255,220,90', ring: true, fill: true, alpha: 0.8 }); refreshHUD(); });
 $('targetBtn').addEventListener('click', () => {
   const t = S.towers.get(S.sel); if (!t || TOWERS[t.type].barracks) return;
@@ -1133,6 +1133,7 @@ async function boot() {
     document.querySelectorAll('.tbtn img').forEach((im) => {
       const n = TOWERS[im.closest('.tbtn').dataset.t].img;
       im.src = IMG[n]?.src || imgSources(n)[0];
+      im.onerror = () => { im.style.visibility = 'hidden'; };
     });
   }).catch((err) => console.warn('2D asset load warning:', err));
 

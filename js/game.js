@@ -44,6 +44,8 @@ const SKILLS = {
   bloom: { name: '긴급 지원', cd: 45, key: 'E' },
 };
 const heroStage = (wave) => (wave <= 3 ? 1 : wave <= 6 ? 2 : 3);
+const TARGET_MODES = ['first', 'strong', 'weak'];
+const TARGET_LABELS = { first:'선두', strong:'강한 적', weak:'약한 적' };
 const WAVE_HINTS = {
   1: ['정찰대 접근', '빠른 고블린이 처음 등장합니다. 궁수 타워로 길목을 지켜보세요.'],
   3: ['오크 전사 등장', '고블린보다 체력이 높습니다. 타워를 분산 배치하세요.'],
@@ -193,6 +195,13 @@ function applyDamage(e, amount, kind = 'physical') {
   e.hp -= dealt;
   return dealt;
 }
+function chooseTarget(t, candidates) {
+  if (!candidates.length) return null;
+  const mode = t.targetMode || 'first';
+  if (mode === 'strong') return candidates.reduce((a,b) => b.hp > a.hp ? b : a);
+  if (mode === 'weak') return candidates.reduce((a,b) => b.hp < a.hp ? b : a);
+  return candidates.reduce((a,b) => b.d > a.d ? b : a);
+}
 function nearestPathD(gx, gy) {
   let bestD = 0, bestDist = Infinity;
   for (let d = 0; d <= total; d += 0.08) {
@@ -313,13 +322,14 @@ function update(dt) {
     if (TOWERS[t.type].cd) {
       t.cool = (t.cool || 0) - dt;
       if (t.cool <= 0) {
-        let best = null, bd = -1;
+        const candidates = [];
         for (const e of S.enemies) {
           if (e.dead) continue;
           const [ex, ey] = posAt(e.d);
           if (TOWERS[t.type].groundOnly && ENEMIES[e.type].fly) continue;
-          if (Math.hypot(ex - tx, ey - ty) <= st.range && e.d > bd) { best = e; bd = e.d; }
+          if (Math.hypot(ex - tx, ey - ty) <= st.range) candidates.push(e);
         }
+        const best = chooseTarget(t, candidates);
         if (best) {
           t.cool = st.cd;
           const dmg = st.dmg * heroBuff(t);
@@ -570,6 +580,9 @@ function refreshHUD() {
     $('pInfo').textContent = [d.dmg ? `${d.magic ? '마법 피해' : '피해'} ${Math.round(st.dmg * heroBuff(t))}` : '', d.dot ? `초당 ${Math.round(st.dot * heroBuff(t))}` : '', d.barracks ? `병사 ${Math.min(4, 2 + (t.lvl - 1))}명` : '', d.slow ? `이동 ${Math.round(st.slow * 100)}%` : '', `사거리 ${st.range.toFixed(1)}`].filter(Boolean).join(' · ');
     const up = $('upBtn'); up.textContent = t.lvl >= 3 ? '최대 레벨' : `강화 (${upgradeCost(t)})`; up.disabled = t.lvl >= 3 || S.gold < upgradeCost(t);
     $('sellBtn').textContent = `판매 (+${sellValue(t)})`;
+    const targetBtn = $('targetBtn');
+    targetBtn.disabled = !!d.barracks;
+    targetBtn.textContent = d.barracks ? '병영: 근접 교전' : `공격 우선: ${TARGET_LABELS[t.targetMode || 'first']}`;
   }
 }
 
@@ -587,7 +600,7 @@ cv.addEventListener('pointerdown', (ev) => {
   if (S.build && pads.has(k)) {
     const d = TOWERS[S.build];
     if (S.gold < d.cost) { toast('골드가 부족합니다'); return; }
-    S.gold -= d.cost; S.towers.set(k, { type: S.build, i, j, lvl: 1, cool: 0 });
+    S.gold -= d.cost; S.towers.set(k, { type: S.build, i, j, lvl: 1, cool: 0, targetMode: 'first' });
     syncBarracks(S.towers.get(k), k);
     addFx({ gx: i + 0.5, gy: j + 0.5, r: 0.9, dur: 0.4, color: '120,255,160', ring: true, fill: true, alpha: 0.8 });
     S.sel = k; refreshHUD(); return;
@@ -599,6 +612,12 @@ for (const k in SKILLS) $('sk_' + k).addEventListener('click', () => useSkill(k)
 $('startBtn').addEventListener('click', startWave);
 $('speedBtn').addEventListener('click', () => { S.speed = S.speed === 1 ? 2 : 1; $('speedBtn').textContent = `x${S.speed}`; });
 $('upBtn').addEventListener('click', () => { const t = S.towers.get(S.sel); if (!t || t.lvl >= 3 || S.gold < upgradeCost(t)) return; S.gold -= upgradeCost(t); t.lvl++; syncBarracks(t, S.sel); addFx({ gx: t.i + 0.5, gy: t.j + 0.5, r: 1, dur: 0.5, color: '255,220,90', ring: true, fill: true, alpha: 0.8 }); refreshHUD(); });
+$('targetBtn').addEventListener('click', () => {
+  const t = S.towers.get(S.sel); if (!t || TOWERS[t.type].barracks) return;
+  const ix = TARGET_MODES.indexOf(t.targetMode || 'first');
+  t.targetMode = TARGET_MODES[(ix + 1) % TARGET_MODES.length];
+  refreshHUD();
+});
 $('sellBtn').addEventListener('click', () => { const t = S.towers.get(S.sel); if (!t) return; S.gold += sellValue(t); const soldKey = S.sel; S.towers.delete(soldKey); S.guards = S.guards.filter((x) => x.towerKey !== soldKey); S.sel = null; refreshHUD(); });
 $('retry').addEventListener('click', () => location.reload());
 addEventListener('keydown', (e) => {

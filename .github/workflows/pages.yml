@@ -28,6 +28,9 @@ jobs:
         with:
           ref: feat/grassland-stage1
 
+      - name: Validate game JavaScript
+        run: node --check js/game.js
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:

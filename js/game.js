@@ -109,10 +109,10 @@ const ASSET_CANDIDATES = {
   // Use one verified legacy art family only. New Stage-1 artwork is reintroduced
   // only after per-asset QA, preventing mixed styles and contaminated crops.
   map_background: ['assets/maps/grassland/stage1-background.webp'],
-  map_pad: [],
-  map_core: [],
-  map_path: [],
-  map_decor: [],
+  map_pad: ['assets/img/map_pad.webp'],
+  map_core: ['assets/img/map_core.webp'],
+  map_path: ['assets/img/map_path.webp'],
+  map_decor: ['assets/img/map_decor.webp'],
 
   tower_ballista: ['assets/towers/archer/archer-l1.webp'],
   tower_ballista_l2: ['assets/img/tower_ballista.webp','assets/towers/archer/archer-l1.webp'],
@@ -150,7 +150,7 @@ const ASSET_CANDIDATES = {
 
   projectile_magic: ['assets/img/weapon_s.webp'],
   projectile_cannon: ['assets/img/weapon_c.webp'],
-  vfx_explosion: [],
+  vfx_explosion: ['assets/img/weapon_f.webp'],
 }
 const imgSources = (n) => {
   if (window.IMG_DATA && window.IMG_DATA[n]) return [window.IMG_DATA[n]];

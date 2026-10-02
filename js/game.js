@@ -85,10 +85,41 @@ pads.delete(key(...HERO_CELL));
 const DECOR = new Set(['0,9', '9,0', '0,5', '9,3', '5,9', '4,6'].filter((k) => !pathCells.has(k) && !pads.has(k)));
 
 // ---------- assets ----------
-const imgSrc = (n) => (window.IMG_DATA && window.IMG_DATA[n]) || `assets/img/${n}.webp`;
+const ASSET_CANDIDATES = {
+  map_pad: ['assets/ui/build-pad.png', 'assets/img/map_pad.webp'],
+  map_core: ['assets/props/kingdom-gate.png', 'assets/img/map_core.webp'],
+  map_path: ['assets/maps/grassland/road-straight.png', 'assets/img/map_path.webp'],
+  map_decor: ['assets/props/grassland-decor.png', 'assets/img/map_decor.webp'],
+  tower_ballista: ['assets/towers/archer/archer-l1.png', 'assets/img/tower_ballista.webp'],
+  tower_mortar: ['assets/towers/artillery/artillery-l1.png', 'assets/img/tower_mortar.webp'],
+  tower_vine: ['assets/towers/mage/mage-l1.png', 'assets/img/tower_vine.webp'],
+  tower_wall: ['assets/towers/barracks/barracks-l1.png', 'assets/img/tower_wall.webp'],
+  enemy_crawler: ['assets/enemies/goblin-scout.png', 'assets/img/enemy_crawler.webp'],
+  enemy_soldier: ['assets/enemies/orc-warrior.png', 'assets/img/enemy_soldier.webp'],
+  enemy_flyer: ['assets/enemies/fantasy-bat.png', 'assets/img/enemy_flyer.webp'],
+  enemy_golem: ['assets/enemies/mountain-troll.png', 'assets/img/enemy_golem.webp'],
+  enemy_boss: ['assets/enemies/boss-ogre-king.png', 'assets/img/enemy_boss.webp'],
+  hero_stage1: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage1.webp'],
+  hero_stage2: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage2.webp'],
+  hero_stage3: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage3.webp'],
+};
+const imgSources = (n) => {
+  if (window.IMG_DATA && window.IMG_DATA[n]) return [window.IMG_DATA[n]];
+  return ASSET_CANDIDATES[n] || [`assets/img/${n}.webp`];
+};
 const b64buf = (b) => { const bin = atob(b), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
 const IMG = {};
-const loadImg = (n) => new Promise((res) => { const im = new Image(); im.onload = () => { IMG[n] = im; res(); }; im.onerror = () => res(); im.src = imgSrc(n); });
+const loadImg = (n) => new Promise((res) => {
+  const sources = imgSources(n);
+  let ix = 0;
+  const tryNext = () => {
+    const im = new Image();
+    im.onload = () => { IMG[n] = im; res(); };
+    im.onerror = () => { ix++; if (ix < sources.length) tryNext(); else res(); };
+    im.src = sources[ix];
+  };
+  tryNext();
+});
 const IMG_NAMES = ['map_pad', 'map_core', 'map_path', 'map_decor', 'tower_ballista', 'tower_mortar', 'tower_vine', 'tower_wall',
   'enemy_crawler', 'enemy_soldier', 'enemy_flyer', 'enemy_golem', 'enemy_boss', 'hero_stage1', 'hero_stage2', 'hero_stage3'];
 

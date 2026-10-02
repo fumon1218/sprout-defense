@@ -289,7 +289,7 @@ function seedDemo() {
 function spawn(type) {
   const d = ENEMIES[type], scale = 1 + 0.16 * (S.wave - 1);
   const e = { type, hp: d.hp * scale, max: d.hp * scale, d: 0, slow: 1, root: 0, dead: false, hitT: 0, attackT: 0, walkT: Math.random() * 6.28 };
-  if (type === 'boss') e.special = 4.5;
+  if (type === 'boss') { e.special = 4.5; e.slamT = 0; }
   S.enemies.push(e);
   if (type === 'boss') toast('보스 등장! 오우거 군주가 진격합니다!');
 }
@@ -315,6 +315,7 @@ function update(dt) {
     e.blocked = false;
     e.hitT = Math.max(0, (e.hitT || 0) - dt);
     e.attackT = Math.max(0, (e.attackT || 0) - dt);
+    if (e.type === 'boss') e.slamT = Math.max(0, (e.slamT || 0) - dt);
     const motion = ENEMIES[e.type].motion || {};
     e.walkT = (e.walkT || 0) + dt * (motion.tempo || (ENEMIES[e.type].fly ? 5.5 : 4.2));
   }
@@ -426,8 +427,10 @@ function update(dt) {
       e.special -= dt;
       if (e.special <= 0) {
         e.special = 6.5;
+        e.slamT = 0.72;
         const [bx, by] = posAt(e.d);
         addFx({ gx: bx, gy: by, r: 1.55, dur: 0.55, color: '255,120,70', ring: true, fill: true, alpha: 0.8 });
+        addFx({ kind:'bossSlam', gx:bx, gy:by, dur:.72, seed:bx*89+by*113 });
         for (const guard of S.guards) {
           if (guard.dead) continue;
           const gd = guard.target && !guard.target.dead ? guard.target.d : guard.homeD;
@@ -509,9 +512,11 @@ function useSkill(k) {
   if (k === 'burst') {
     for (const e of S.enemies) { const [ex, ey] = posAt(e.d); if (Math.hypot(ex - hx, ey - hy) <= 2.8) applyDamage(e, 140 + S.wave * 12, 'magic'); }
     addFx({ gx: hx, gy: hy, r: 2.8, dur: 0.6, color: '120,255,150', ring: true, fill: true, alpha: 0.8 });
+    addFx({ kind:'heroBurst', gx:hx, gy:hy, dur:.62, seed:S.time*97 });
   } else if (k === 'root') {
     for (const e of S.enemies) { const [ex, ey] = posAt(e.d); if (Math.hypot(ex - hx, ey - hy) <= 3.8) e.root = 4; }
     addFx({ gx: hx, gy: hy, r: 3.8, dur: 0.8, color: '90,200,120', ring: true, fill: true, alpha: 0.6 });
+    addFx({ kind:'rootBurst', gx:hx, gy:hy, dur:.8, seed:S.time*71 });
   } else if (k === 'bloom') {
     S.shots.push({ kind:'potion', from:[hx,hy], to:[CORE[0]+.5,CORE[1]+.5], t:0, dur:.78, heal:3, spin:0 });
   }
@@ -736,6 +741,33 @@ function drawCleanImpactFx(f){
       const a=i/8*Math.PI*2+fxRand(seed,i)*.25, dist=(7+35*p)*(0.7+fxRand(seed,i+12)*.4);
       ctx.fillStyle=`rgba(105,220,145,${fade*.8})`; ctx.beginPath(); ctx.arc(c.x+Math.cos(a)*dist,c.y+Math.sin(a)*dist*.35-8*p,2.5+1.5*fade,0,Math.PI*2); ctx.fill();
     }
+  }else if(f.kind==='bossSlam'){
+    const rr=24+92*p;
+    ctx.strokeStyle=`rgba(255,115,70,${fade*.95})`; ctx.lineWidth=6-2*p;
+    ctx.beginPath(); ctx.ellipse(c.x,c.y+5,rr,rr*.30,0,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle=`rgba(255,210,120,${fade*.7})`; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.ellipse(c.x,c.y+5,rr*.66,rr*.20,0,0,Math.PI*2); ctx.stroke();
+    for(let i=0;i<14;i++){
+      const a=i/14*Math.PI*2+fxRand(seed,i)*.18, dist=(18+78*p)*(0.65+fxRand(seed,i+19)*.45);
+      const x=c.x+Math.cos(a)*dist, y=c.y+6+Math.sin(a)*dist*.28-24*p*(.45+fxRand(seed,i+38));
+      const r=2.5+5*fade*(.55+fxRand(seed,i+57)*.65);
+      ctx.fillStyle=`rgba(130,95,70,${fade*.85})`; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    }
+  }else if(f.kind==='heroBurst'){
+    const rr=18+54*p;
+    ctx.strokeStyle=`rgba(150,255,180,${fade*.9})`; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(c.x,c.y-18,rr,0,Math.PI*2); ctx.stroke();
+    for(let i=0;i<10;i++){
+      const a=i/10*Math.PI*2, d=8+46*p;
+      ctx.fillStyle=`rgba(215,255,225,${fade*.85})`; ctx.beginPath(); ctx.arc(c.x+Math.cos(a)*d,c.y-18+Math.sin(a)*d,2.4,0,Math.PI*2); ctx.fill();
+    }
+  }else if(f.kind==='rootBurst'){
+    const rr=20+68*p;
+    ctx.strokeStyle=`rgba(100,220,130,${fade*.85})`; ctx.lineWidth=3;
+    for(let i=0;i<6;i++){
+      const a=i/6*Math.PI*2, ex=c.x+Math.cos(a)*rr, ey=c.y+Math.sin(a)*rr*.32;
+      ctx.beginPath(); ctx.moveTo(c.x,c.y+4); ctx.quadraticCurveTo((c.x+ex)/2,c.y-18-18*p,ex,ey); ctx.stroke();
+    }
   }
   ctx.restore();
 }
@@ -883,10 +915,12 @@ function render() {
       const sway = Math.sin(phase * (d.fly ? .72 : .5)) * (motion.sway || .025);
       const atk = e.attackT > 0 ? Math.sin((e.attackT / 0.18) * Math.PI) : 0;
       const bossBreath = e.type === 'boss' ? 1 + Math.sin(S.time * 1.7) * 0.012 : 1;
-      spriteMotion(d.img, c.x, c.y + 6 - lift - walkBob, d.h, {
-        rot: sway + atk * 0.08,
-        sx: bossBreath * (1 + atk * 0.035),
-        sy: (2 - bossBreath) * (1 - atk * 0.025),
+      const slam = e.type === 'boss' ? Math.max(0, Math.min(1, (e.slamT||0)/.72)) : 0;
+      const slamCurve = slam>0 ? Math.sin((1-slam)*Math.PI) : 0;
+      spriteMotion(d.img, c.x, c.y + 6 - lift - walkBob + slamCurve*5, d.h, {
+        rot: sway + atk * 0.08 - slamCurve*.045,
+        sx: bossBreath * (1 + atk * 0.035 + slamCurve*.08),
+        sy: (2 - bossBreath) * (1 - atk * 0.025 - slamCurve*.10),
         flash: e.hitT > 0 ? Math.min(0.65, e.hitT * 4.2) : 0
       });
       if (e.type === 'armored') {

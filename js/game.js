@@ -127,6 +127,7 @@ const ASSET_CANDIDATES = {
   hero_stage2: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage2.webp'],
   hero_stage3: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage3.webp'],
   friendly_soldier: ['assets/units/foot-soldier.webp', 'assets/units/foot-soldier.png', 'assets/img/hero_stage1.webp'],
+  friendly_soldier_atlas: ['assets/units/knight-animation-atlas.webp'],
   anim_knight_idle: ['assets/animations/knight/idle-strip.webp'],
   anim_knight_walk: ['assets/animations/knight/walk-strip.webp'],
   anim_knight_attack: ['assets/animations/knight/attack-strip.webp'],
@@ -328,7 +329,12 @@ function update(dt) {
     }
     guard.attackT = Math.max(0, (guard.attackT || 0) - dt);
     guard.hurtT = Math.max(0, (guard.hurtT || 0) - dt);
-    guard.stepT = (guard.stepT || 0) + dt * (target ? 6.2 : 3.3);
+    guard.stepT = (guard.stepT || 0) + dt;
+    const desiredD = target && !target.dead ? target.d : guard.homeD;
+    if (guard.displayD == null) guard.displayD = guard.homeD;
+    const deltaD = desiredD - guard.displayD;
+    const maxStep = (target ? 1.25 : .9) * dt;
+    guard.displayD += Math.max(-maxStep, Math.min(maxStep, deltaD));
     guard.animT = (guard.animT || 0) + dt;
     const desiredD = target && !target.dead ? target.d : guard.homeD;
     if (guard.visualD == null) guard.visualD = guard.homeD;
@@ -568,6 +574,40 @@ function drawStrip(name, x, y, h, time, opt = {}) {
   ctx.translate(x + (opt.dx || 0), y + (opt.dy || 0));
   if (opt.flip) ctx.scale(-1,1);
   ctx.drawImage(im, frame * fw, 0, fw, fh, -w/2, -h, w, h);
+  ctx.restore();
+  return true;
+}
+const ANIM_ATLAS = {
+  friendly_soldier_atlas: {
+    frame: 72,
+    rows: { idle:0, walk:1, attack:2, death:3 },
+    counts: { idle:4, walk:8, attack:6, death:7 },
+    fps: { idle:7, walk:12, attack:15, death:10 }
+  }
+};
+function drawAtlasAnim(name, state, x, y, h, time, opt = {}) {
+  const im = IMG[name], meta = ANIM_ATLAS[name];
+  if (!im || !meta || meta.rows[state] == null) return false;
+  const count = meta.counts[state], fps = meta.fps[state] || 10;
+  let frame;
+  if (state === 'death') frame = Math.min(count - 1, Math.floor(time * fps));
+  else if (state === 'attack') frame = Math.min(count - 1, Math.floor(time * fps));
+  else frame = Math.floor(time * fps) % count;
+  const fs = meta.frame, sx0 = frame * fs, sy0 = meta.rows[state] * fs;
+  const scale = h / fs;
+  const dw = fs * scale, dh = fs * scale;
+  ctx.save();
+  ctx.globalAlpha = opt.alpha == null ? 1 : opt.alpha;
+  ctx.translate(x + (opt.dx || 0), y + (opt.dy || 0));
+  ctx.rotate(opt.rot || 0);
+  if (opt.flip) ctx.scale(-1,1);
+  ctx.drawImage(im, sx0, sy0, fs, fs, -dw/2, -dh, dw, dh);
+  if (opt.flash) {
+    ctx.globalCompositeOperation='source-atop';
+    ctx.globalAlpha=Math.min(.7,opt.flash);
+    ctx.fillStyle='#fff';
+    ctx.fillRect(-dw/2,-dh,dw,dh);
+  }
   ctx.restore();
   return true;
 }

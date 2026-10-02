@@ -13,8 +13,8 @@ const START_LIVES = 20, START_GOLD = 220, LAST_WAVE = 10;
 
 const TOWERS = {
   ballista: { name: '궁수 타워', img: 'tower_ballista', cost: 60, range: 3.3, dmg: 22, cd: 0.7, h: 92, desc: '빠른 물리 단일 공격' },
-  mortar:   { name: '포병 타워', img: 'tower_mortar',   cost: 90, range: 3.7, dmg: 42, cd: 1.7, splash: 1.15, h: 104, desc: '느리지만 강한 범위 공격' },
-  vine:     { name: '마법 타워', img: 'tower_vine',     cost: 70, range: 2.6, dot: 13, slow: 0.68, h: 128, desc: '마법 피해와 약한 감속' },
+  mortar:   { name: '포병 타워', img: 'tower_mortar',   cost: 90, range: 3.7, dmg: 42, cd: 1.7, splash: 1.15, groundOnly: true, h: 104, desc: '느리지만 강한 지상 범위 공격' },
+  vine:     { name: '마법 타워', img: 'tower_vine',     cost: 70, range: 3.0, dmg: 31, cd: 1.05, magic: true, h: 128, desc: '갑옷을 무시하는 마법 단일 공격' },
   wall:     { name: '병영',       img: 'tower_wall',     cost: 45, range: 1.8, barracks: true, h: 66, desc: '병사를 배치해 지상 적을 막는 방어 거점' },
 };
 const ENEMIES = {
@@ -281,6 +281,7 @@ function update(dt) {
         for (const e of S.enemies) {
           if (e.dead) continue;
           const [ex, ey] = posAt(e.d);
+          if (TOWERS[t.type].groundOnly && ENEMIES[e.type].fly) continue;
           if (Math.hypot(ex - tx, ey - ty) <= st.range && e.d > bd) { best = e; bd = e.d; }
         }
         if (best) {
@@ -289,6 +290,9 @@ function update(dt) {
           if (t.type === 'ballista') {
             applyDamage(best, dmg, 'physical');
             const p = posAt(best.d); S.shots.push({ kind: 'bolt', from: [tx, ty], to: p, t: 0, dur: 0.14 });
+          } else if (TOWERS[t.type].magic) {
+            applyDamage(best, dmg, 'magic');
+            const p = posAt(best.d); S.shots.push({ kind: 'magic', from: [tx, ty], to: p, t: 0, dur: 0.22 });
           } else {
             const p = posAt(best.d); S.shots.push({ kind: 'seed', from: [tx, ty], to: p, t: 0, dur: 0.65, dmg, splash: st.splash });
           }
@@ -472,8 +476,14 @@ function render() {
   // shots
   for (const s of S.shots) {
     const a = iso(...s.from), b = iso(...s.to);
-    if (s.kind === 'bolt') { ctx.strokeStyle = `rgba(190,255,150,${1 - s.t / s.dur})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(a.x, a.y - 60); ctx.lineTo(b.x, b.y - 30); ctx.stroke(); }
-    else { const p = Math.min(1, s.t / s.dur), x = a.x + (b.x - a.x) * p, y = a.y - 70 + (b.y - a.y + 70) * p - Math.sin(p * Math.PI) * 90; ctx.fillStyle = '#ffb04a'; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); }
+    if (s.kind === 'bolt') {
+      ctx.strokeStyle = `rgba(245,225,155,${1 - s.t / s.dur})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(a.x, a.y - 60); ctx.lineTo(b.x, b.y - 30); ctx.stroke();
+    } else if (s.kind === 'magic') {
+      const p = Math.min(1, s.t / s.dur), x = a.x + (b.x - a.x) * p, y = a.y - 65 + (b.y - a.y + 40) * p;
+      const glow = 1 - p * 0.45; ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = '#5cc8ff'; ctx.fillStyle = `rgba(100,170,255,${glow})`; ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.restore();
+    } else {
+      const p = Math.min(1, s.t / s.dur), x = a.x + (b.x - a.x) * p, y = a.y - 70 + (b.y - a.y + 70) * p - Math.sin(p * Math.PI) * 90; ctx.fillStyle = '#ffb04a'; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill();
+    }
   }
   for (const f of S.fx) if (f.text) { const c = iso(f.gx, f.gy), p = f.t / f.dur; ctx.fillStyle = `rgba(${f.color},${1 - p})`; ctx.font = '700 20px system-ui'; ctx.textAlign = 'center'; ctx.fillText(f.text, c.x, c.y - 70 - p * 30); }
 }
@@ -490,7 +500,7 @@ function refreshHUD() {
   if (t) {
     const d = TOWERS[t.type], st = towerStats(t);
     $('pName').textContent = `${d.name} Lv.${t.lvl}`;
-    $('pInfo').textContent = [d.dmg ? `피해 ${Math.round(st.dmg * heroBuff(t))}` : '', d.dot ? `초당 ${Math.round(st.dot * heroBuff(t))}` : '', d.slow ? `이동 ${Math.round(st.slow * 100)}%` : '', `사거리 ${st.range.toFixed(1)}`].filter(Boolean).join(' · ');
+    $('pInfo').textContent = [d.dmg ? `${d.magic ? '마법 피해' : '피해'} ${Math.round(st.dmg * heroBuff(t))}` : '', d.dot ? `초당 ${Math.round(st.dot * heroBuff(t))}` : '', d.barracks ? `병사 ${Math.min(4, 2 + (t.lvl - 1))}명` : '', d.slow ? `이동 ${Math.round(st.slow * 100)}%` : '', `사거리 ${st.range.toFixed(1)}`].filter(Boolean).join(' · ');
     const up = $('upBtn'); up.textContent = t.lvl >= 3 ? '최대 레벨' : `강화 (${upgradeCost(t)})`; up.disabled = t.lvl >= 3 || S.gold < upgradeCost(t);
     $('sellBtn').textContent = `판매 (+${sellValue(t)})`;
   }

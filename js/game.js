@@ -140,7 +140,7 @@ const ASSET_CANDIDATES = {
   hero_stage3: ['assets/img/hero_stage3.webp','assets/heroes/ranger-hero.webp'],
   friendly_soldier: ['assets/units/friendly-knight.webp'],
 
-  // Disable unverified animation atlases in the public preview.
+  // Verified public animation atlas. Individual knight strips remain disabled until clean-frame QA passes.
   friendly_soldier_atlas: [],
   anim_knight_idle: [],
   anim_knight_walk: [],

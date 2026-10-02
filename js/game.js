@@ -35,9 +35,8 @@ const WAVES = [
   [['shaman', 2], ['soldier', 8], ['armored', 3]],
   [['golem', 2], ['soldier', 8]],
   [['flyer', 8], ['shaman', 3], ['armored', 5]],
-  [['golem', 4], ['crawler', 16], ['shaman', 3]],
-  [['golem', 5], ['soldier', 10], ['armored', 6], ['flyer', 6]],
-  [['boss', 1], ['golem', 4], ['armored', 6], ['shaman', 4], ['flyer', 6]],
+  [['golem', 4], ['crawler', 14], ['shaman', 3], ['armored', 4]],
+  [['boss', 1], ['golem', 4], ['soldier', 8], ['armored', 6], ['shaman', 4], ['flyer', 6]],
 ];
 const SKILLS = {
   burst: { name: '화살비', cd: 15, key: 'Q' },
@@ -94,9 +93,17 @@ const ASSET_CANDIDATES = {
   map_path: ['assets/maps/grassland/road-straight.png', 'assets/img/map_path.webp'],
   map_decor: ['assets/props/grassland-decor.png', 'assets/img/map_decor.webp'],
   tower_ballista: ['assets/towers/archer/archer-l1.webp', 'assets/img/tower_ballista.webp'],
-  tower_mortar: ['assets/towers/artillery/artillery-l1.png', 'assets/img/tower_mortar.webp'],
+  tower_ballista_l2: ['assets/towers/archer/archer-l2.webp', 'assets/towers/archer/archer-l1.webp', 'assets/img/tower_ballista.webp'],
+  tower_ballista_l3: ['assets/towers/archer/archer-l3.webp', 'assets/towers/archer/archer-l2.webp', 'assets/towers/archer/archer-l1.webp', 'assets/img/tower_ballista.webp'],
+  tower_mortar: ['assets/towers/artillery/artillery-l1.webp', 'assets/img/tower_mortar.webp'],
+  tower_mortar_l2: ['assets/towers/artillery/artillery-l2.webp', 'assets/towers/artillery/artillery-l1.webp', 'assets/img/tower_mortar.webp'],
+  tower_mortar_l3: ['assets/towers/artillery/artillery-l3.webp', 'assets/towers/artillery/artillery-l2.webp', 'assets/towers/artillery/artillery-l1.webp', 'assets/img/tower_mortar.webp'],
   tower_vine: ['assets/towers/mage/mage-l1.webp', 'assets/img/tower_vine.webp'],
+  tower_vine_l2: ['assets/towers/mage/mage-l2.webp', 'assets/towers/mage/mage-l1.webp', 'assets/img/tower_vine.webp'],
+  tower_vine_l3: ['assets/towers/mage/mage-l3.webp', 'assets/towers/mage/mage-l2.webp', 'assets/towers/mage/mage-l1.webp', 'assets/img/tower_vine.webp'],
   tower_wall: ['assets/towers/barracks/barracks-l1.webp', 'assets/img/tower_wall.webp'],
+  tower_wall_l2: ['assets/towers/barracks/barracks-l2.webp', 'assets/towers/barracks/barracks-l1.webp', 'assets/img/tower_wall.webp'],
+  tower_wall_l3: ['assets/towers/barracks/barracks-l3.webp', 'assets/towers/barracks/barracks-l2.webp', 'assets/towers/barracks/barracks-l1.webp', 'assets/img/tower_wall.webp'],
   enemy_crawler: ['assets/enemies/goblin-scout.png', 'assets/img/enemy_crawler.webp'],
   enemy_soldier: ['assets/enemies/orc-warrior.png', 'assets/img/enemy_soldier.webp'],
   enemy_armored: ['assets/enemies/armored-orc.png', 'assets/img/enemy_soldier.webp'],
@@ -126,7 +133,11 @@ const loadImg = (n) => new Promise((res) => {
   };
   tryNext();
 });
-const IMG_NAMES = ['map_pad', 'map_core', 'map_path', 'map_decor', 'tower_ballista', 'tower_mortar', 'tower_vine', 'tower_wall',
+const IMG_NAMES = ['map_pad', 'map_core', 'map_path', 'map_decor',
+  'tower_ballista', 'tower_ballista_l2', 'tower_ballista_l3',
+  'tower_mortar', 'tower_mortar_l2', 'tower_mortar_l3',
+  'tower_vine', 'tower_vine_l2', 'tower_vine_l3',
+  'tower_wall', 'tower_wall_l2', 'tower_wall_l3',
   'enemy_crawler', 'enemy_soldier', 'enemy_armored', 'enemy_shaman', 'enemy_flyer', 'enemy_golem', 'enemy_boss', 'hero_stage1', 'hero_stage2', 'hero_stage3', 'friendly_soldier'];
 
 // ---------- state ----------
@@ -396,6 +407,9 @@ function ring(gx, gy, r, color, alpha, fill, dashed) {
   if (fill) { ctx.fillStyle = `rgba(${color},${alpha * 0.25})`; ctx.fill(); }
   ctx.strokeStyle = `rgba(${color},${alpha})`; ctx.lineWidth = 2; if (dashed) ctx.setLineDash([8, 6]); ctx.stroke(); ctx.restore();
 }
+function towerSpriteName(t) {
+  return t.lvl <= 1 ? TOWERS[t.type].img : `${TOWERS[t.type].img}_l${Math.min(3, t.lvl)}`;
+}
 function sprite(name, x, y, h, flip) { // bottom-centre anchored
   const im = IMG[name]; if (!im) return;
   const w = im.width * h / im.height;
@@ -446,7 +460,7 @@ function render() {
   for (const t of S.towers.values()) {
     const c = iso(t.i + 0.5, t.j + 0.5), d = TOWERS[t.type];
     items.push({ d: t.i + t.j + 1, f: () => {
-      sprite(d.img, c.x, c.y + 10, d.h * (1 + 0.07 * (t.lvl - 1)));
+      sprite(towerSpriteName(t), c.x, c.y + 10, d.h * (1 + 0.07 * (t.lvl - 1)));
       for (let l = 0; l < t.lvl; l++) { ctx.fillStyle = '#ffd95a'; ctx.beginPath(); ctx.arc(c.x - 12 + l * 12, c.y + 24, 3.6, 0, 7); ctx.fill(); }
       if (heroBuff(t) > 1) { ctx.fillStyle = 'rgba(120,255,160,.9)'; ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('▲', c.x + 30, c.y + 26); }
     } });

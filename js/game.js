@@ -12,34 +12,34 @@ const HERO_CELL = [4, 2];
 const START_LIVES = 20, START_GOLD = 220, LAST_WAVE = 10;
 
 const TOWERS = {
-  ballista: { name: '가시 발사대', img: 'tower_ballista', cost: 60, range: 3.3, dmg: 22, cd: 0.7, h: 92, desc: '단일 대상 고화력' },
-  mortar:   { name: '폭발 씨앗포', img: 'tower_mortar',   cost: 90, range: 3.7, dmg: 42, cd: 1.7, splash: 1.15, h: 104, desc: '범위 폭발 피해' },
-  vine:     { name: '덩굴 감옥',   img: 'tower_vine',     cost: 70, range: 2.3, dot: 11, slow: 0.55, h: 128, desc: '감속과 지속 피해' },
-  wall:     { name: '뿌리 장벽',   img: 'tower_wall',     cost: 45, range: 1.7, slow: 0.32, h: 66, desc: '강한 감속' },
+  ballista: { name: '궁수 타워', img: 'tower_ballista', cost: 60, range: 3.3, dmg: 22, cd: 0.7, h: 92, desc: '빠른 물리 단일 공격' },
+  mortar:   { name: '포병 타워', img: 'tower_mortar',   cost: 90, range: 3.7, dmg: 42, cd: 1.7, splash: 1.15, h: 104, desc: '느리지만 강한 범위 공격' },
+  vine:     { name: '마법 타워', img: 'tower_vine',     cost: 70, range: 2.6, dot: 13, slow: 0.68, h: 128, desc: '마법 피해와 약한 감속' },
+  wall:     { name: '병영',       img: 'tower_wall',     cost: 45, range: 1.8, slow: 0.36, h: 66, desc: '병사가 길목을 지키는 방어 거점' },
 };
 const ENEMIES = {
-  crawler: { name: '뿌리 기어', img: 'enemy_crawler', hp: 46,  speed: 1.25, reward: 6,  h: 58,  dmg: 1 },
-  soldier: { name: '부패 병사', img: 'enemy_soldier', hp: 120, speed: 0.95, reward: 11, h: 88,  dmg: 1 },
-  flyer:   { name: '포자 나방', img: 'enemy_flyer',   hp: 70,  speed: 1.5,  reward: 9,  h: 60,  dmg: 1, fly: true },
-  golem:   { name: '부식 골렘', img: 'enemy_golem',   hp: 420, speed: 0.6,  reward: 28, h: 118, dmg: 3 },
-  boss:    { name: '부패의 군주', img: 'enemy_boss',  hp: 2200, speed: 0.5, reward: 150, h: 160, dmg: 8 },
+  crawler: { name: '고블린 정찰병', img: 'enemy_crawler', hp: 48,  speed: 1.35, reward: 6,  h: 58,  dmg: 1 },
+  soldier: { name: '오크 전사',     img: 'enemy_soldier', hp: 130, speed: 0.92, reward: 11, h: 88,  dmg: 1 },
+  flyer:   { name: '동굴 박쥐',     img: 'enemy_flyer',   hp: 76,  speed: 1.55, reward: 9,  h: 60,  dmg: 1, fly: true },
+  golem:   { name: '산악 트롤',     img: 'enemy_golem',   hp: 440, speed: 0.58, reward: 28, h: 118, dmg: 3 },
+  boss:    { name: '오우거 군주',   img: 'enemy_boss',    hp: 2300, speed: 0.48, reward: 150, h: 160, dmg: 8 },
 };
 const WAVES = [
   [['crawler', 8]],
   [['crawler', 12]],
   [['crawler', 8], ['soldier', 4]],
-  [['soldier', 8], ['flyer', 4]],
-  [['golem', 2], ['crawler', 10]],
-  [['flyer', 8], ['soldier', 8]],
-  [['golem', 4], ['soldier', 8]],
-  [['crawler', 20], ['flyer', 8]],
-  [['golem', 6], ['soldier', 10]],
-  [['boss', 1], ['golem', 4], ['soldier', 10]],
+  [['soldier', 8], ['crawler', 8]],
+  [['flyer', 6], ['crawler', 10]],
+  [['golem', 2], ['soldier', 8]],
+  [['flyer', 8], ['soldier', 10]],
+  [['golem', 4], ['crawler', 16]],
+  [['golem', 5], ['soldier', 12], ['flyer', 6]],
+  [['boss', 1], ['golem', 4], ['soldier', 12], ['flyer', 6]],
 ];
 const SKILLS = {
-  burst: { name: '광합성 폭발', cd: 15, key: 'Q' },
-  root:  { name: '덩굴 결계', cd: 20, key: 'W' },
-  bloom: { name: '생명의 개화', cd: 45, key: 'E' },
+  burst: { name: '화살비', cd: 15, key: 'Q' },
+  root:  { name: '왕국의 결계', cd: 20, key: 'W' },
+  bloom: { name: '긴급 지원', cd: 45, key: 'E' },
 };
 const heroStage = (wave) => (wave <= 3 ? 1 : wave <= 6 ? 2 : 3);
 
@@ -129,7 +129,7 @@ function startWave() {
   list.sort(() => Math.random() - 0.5);
   S.queue = list; S.spawnT = 0.4;
   const st = heroStage(S.wave);
-  if (st !== S.heroStage) { S.heroStage = st; toast(`새싹맨이 ${st === 2 ? '묘목' : '거목'}으로 진화했다!`); }
+  if (st !== S.heroStage) { S.heroStage = st; toast(`지휘관의 전투 오라가 ${st === 2 ? '강화' : '최대로 강화'}되었습니다!`); }
   refreshHUD();
 }
 function spawn(type) {
@@ -222,7 +222,7 @@ function update(dt) {
 function endGame(win) {
   S.over = true;
   $('endTitle').textContent = win ? '승리!' : '패배...';
-  $('endText').textContent = win ? '부패의 군단을 물리치고 세계수를 지켜냈습니다.' : '세계수의 뿌리가 무너졌습니다.';
+  $('endText').textContent = win ? '오우거 군주를 물리치고 초원 왕국을 지켜냈습니다.' : '왕국의 방어선이 무너졌습니다.';
   $('end').hidden = false;
 }
 
@@ -300,7 +300,7 @@ function drawHero(c) {
 function heroLabel() {
   const c = iso(HERO_CELL[0] + 0.5, HERO_CELL[1] + 0.5);
   ctx.font = '600 15px system-ui, sans-serif'; ctx.textAlign = 'center';
-  const t = `새싹맨 · ${['', '새싹', '묘목', '거목'][S.heroStage]}`;
+  const t = `왕국 지휘관 · ${['', '기본', '강화', '최대'][S.heroStage]}`;
   ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(c.x - ctx.measureText(t).width / 2 - 6, c.y + 40, ctx.measureText(t).width + 12, 22);
   ctx.fillStyle = '#d9ffd9'; ctx.fillText(t, c.x, c.y + 56);
 }

@@ -132,7 +132,7 @@ const ASSET_CANDIDATES = {
   anim_knight_walk: ['assets/animations/knight/walk-strip.webp'],
   anim_knight_attack: ['assets/animations/knight/attack-strip.webp'],
   anim_knight_death: ['assets/animations/knight/death-strip.webp'],
-  tower_combat_atlas: ['assets/animations/towers/tower-combat-atlas.webp'],
+  tower_combat_atlas: ['assets/animations/towers/tower-combat-atlas-release.webp'],
   projectile_magic: ['assets/projectiles/arcane-orb.webp', 'assets/projectiles/arcane-orb.png'],
   projectile_cannon: ['assets/projectiles/cannonball.webp', 'assets/projectiles/cannonball.png'],
   vfx_explosion: ['assets/vfx/explosion.webp', 'assets/vfx/explosion.png'],

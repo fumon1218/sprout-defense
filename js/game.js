@@ -168,8 +168,15 @@ const IMG_NAMES = ['map_background', 'map_pad', 'map_core', 'map_path', 'map_dec
   'projectile_magic', 'projectile_cannon', 'vfx_explosion'];
 
 // ---------- state ----------
-const cv = document.getElementById('game'); cv.width = W; cv.height = H;
+const cv = document.getElementById('game');
+const RENDER_SCALE = Math.min(2, Math.max(1.5, window.devicePixelRatio || 1));
+cv.width = Math.round(W * RENDER_SCALE);
+cv.height = Math.round(H * RENDER_SCALE);
+cv.style.aspectRatio = `${W} / ${H}`;
 const ctx = cv.getContext('2d');
+ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = 'high';
 const $ = (id) => document.getElementById(id);
 const S = {
   gold: START_GOLD, lives: START_LIVES, wave: 0, phase: 'prep', speed: 1,
@@ -536,6 +543,8 @@ function drawBackdrop() {
   const dw = im.width * scale, dh = im.height * scale;
   ctx.save();
   ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(im, (W - dw) / 2, (H - dh) / 2, dw, dh);
   ctx.restore();
   return true;

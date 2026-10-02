@@ -99,44 +99,53 @@ const DECOR = new Set(['0,9', '9,0', '0,5', '9,3', '5,9', '4,6'].filter((k) => !
 
 // ---------- assets ----------
 const ASSET_CANDIDATES = {
-  map_background: ['assets/maps/grassland/stage1-background.webp'],
-  map_pad: ['assets/ui/build-pad.png', 'assets/img/map_pad.webp'],
-  map_core: ['assets/props/kingdom-gate.png', 'assets/img/map_core.webp'],
-  map_path: ['assets/maps/grassland/road-straight.png', 'assets/img/map_path.webp'],
-  map_decor: ['assets/props/grassland-decor.png', 'assets/img/map_decor.webp'],
-  tower_ballista: ['assets/towers/archer/archer-l1.webp', 'assets/img/tower_ballista.webp'],
-  tower_ballista_l2: ['assets/towers/archer/archer-l2.webp', 'assets/towers/archer/archer-l1.webp', 'assets/img/tower_ballista.webp'],
-  tower_ballista_l3: ['assets/towers/archer/archer-l3.webp', 'assets/towers/archer/archer-l2.webp', 'assets/towers/archer/archer-l1.webp', 'assets/img/tower_ballista.webp'],
-  tower_mortar: ['assets/towers/artillery/artillery-l1.webp', 'assets/img/tower_mortar.webp'],
-  tower_mortar_l2: ['assets/towers/artillery/artillery-l2.webp', 'assets/towers/artillery/artillery-l1.webp', 'assets/img/tower_mortar.webp'],
-  tower_mortar_l3: ['assets/towers/artillery/artillery-l3.webp', 'assets/towers/artillery/artillery-l2.webp', 'assets/towers/artillery/artillery-l1.webp', 'assets/img/tower_mortar.webp'],
-  tower_vine: ['assets/towers/mage/mage-l1.webp', 'assets/img/tower_vine.webp'],
-  tower_vine_l2: ['assets/towers/mage/mage-l2.webp', 'assets/towers/mage/mage-l1.webp', 'assets/img/tower_vine.webp'],
-  tower_vine_l3: ['assets/towers/mage/mage-l3.webp', 'assets/towers/mage/mage-l2.webp', 'assets/towers/mage/mage-l1.webp', 'assets/img/tower_vine.webp'],
-  tower_wall: ['assets/towers/barracks/barracks-l1.webp', 'assets/img/tower_wall.webp'],
-  tower_wall_l2: ['assets/towers/barracks/barracks-l2.webp', 'assets/towers/barracks/barracks-l1.webp', 'assets/img/tower_wall.webp'],
-  tower_wall_l3: ['assets/towers/barracks/barracks-l3.webp', 'assets/towers/barracks/barracks-l2.webp', 'assets/towers/barracks/barracks-l1.webp', 'assets/img/tower_wall.webp'],
-  enemy_crawler: ['assets/enemies/goblin-scout.webp', 'assets/enemies/goblin-scout.png', 'assets/img/enemy_crawler.webp'],
-  enemy_soldier: ['assets/enemies/orc-warrior.webp', 'assets/enemies/orc-warrior.png', 'assets/img/enemy_soldier.webp'],
-  enemy_armored: ['assets/enemies/armored-orc.webp', 'assets/enemies/armored-orc.png', 'assets/img/enemy_soldier.webp'],
-  enemy_shaman: ['assets/enemies/orc-shaman.webp', 'assets/enemies/orc-shaman.png', 'assets/img/enemy_soldier.webp'],
-  enemy_flyer: ['assets/enemies/fantasy-bat.webp', 'assets/enemies/fantasy-bat.png', 'assets/img/enemy_flyer.webp'],
-  enemy_golem: ['assets/enemies/mountain-troll.webp', 'assets/enemies/mountain-troll.png', 'assets/img/enemy_golem.webp'],
-  enemy_boss: ['assets/enemies/boss-ogre-king.webp', 'assets/enemies/boss-ogre-king.png', 'assets/img/enemy_boss.webp'],
-  hero_stage1: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage1.webp'],
-  hero_stage2: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage2.webp'],
-  hero_stage3: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage3.webp'],
-  friendly_soldier: ['assets/units/foot-soldier.webp', 'assets/units/foot-soldier.png', 'assets/img/hero_stage1.webp'],
-  friendly_soldier_atlas: ['assets/units/knight-animation-atlas.webp'],
-  anim_knight_idle: ['assets/animations/knight/idle-strip.webp'],
-  anim_knight_walk: ['assets/animations/knight/walk-strip.webp'],
-  anim_knight_attack: ['assets/animations/knight/attack-strip.webp'],
-  anim_knight_death: ['assets/animations/knight/death-strip.webp'],
-  tower_combat_atlas: ['assets/animations/towers/tower-combat-atlas-release.webp'],
-  projectile_magic: ['assets/projectiles/arcane-orb.webp', 'assets/projectiles/arcane-orb.png'],
-  projectile_cannon: ['assets/projectiles/cannonball.webp', 'assets/projectiles/cannonball.png'],
-  vfx_explosion: ['assets/vfx/explosion.webp', 'assets/vfx/explosion.png'],
-};
+  // CLEAN PREVIEW MODE:
+  // Use one verified legacy art family only. New Stage-1 artwork is reintroduced
+  // only after per-asset QA, preventing mixed styles and contaminated crops.
+  map_background: [],
+  map_pad: [],
+  map_core: ['assets/img/map_core.webp'],
+  map_path: [],
+  map_decor: [],
+
+  tower_ballista: ['assets/img/tower_ballista.webp'],
+  tower_ballista_l2: ['assets/img/tower_ballista.webp'],
+  tower_ballista_l3: ['assets/img/tower_ballista.webp'],
+  tower_mortar: ['assets/img/tower_mortar.webp'],
+  tower_mortar_l2: ['assets/img/tower_mortar.webp'],
+  tower_mortar_l3: ['assets/img/tower_mortar.webp'],
+  tower_vine: ['assets/img/tower_vine.webp'],
+  tower_vine_l2: ['assets/img/tower_vine.webp'],
+  tower_vine_l3: ['assets/img/tower_vine.webp'],
+  tower_wall: ['assets/img/tower_wall.webp'],
+  tower_wall_l2: ['assets/img/tower_wall.webp'],
+  tower_wall_l3: ['assets/img/tower_wall.webp'],
+
+  enemy_crawler: ['assets/img/enemy_crawler.webp'],
+  enemy_soldier: ['assets/img/enemy_soldier.webp'],
+  enemy_armored: ['assets/img/enemy_soldier.webp'],
+  enemy_shaman: ['assets/img/enemy_soldier.webp'],
+  enemy_flyer: ['assets/img/enemy_flyer.webp'],
+  enemy_golem: ['assets/img/enemy_golem.webp'],
+  enemy_boss: ['assets/img/enemy_boss.webp'],
+
+  hero_stage1: ['assets/img/hero_stage1.webp'],
+  hero_stage2: ['assets/img/hero_stage2.webp'],
+  hero_stage3: ['assets/img/hero_stage3.webp'],
+  friendly_soldier: ['assets/img/hero_stage1.webp'],
+
+  // Disable unverified animation atlases in the public preview.
+  friendly_soldier_atlas: [],
+  anim_knight_idle: [],
+  anim_knight_walk: [],
+  anim_knight_attack: [],
+  anim_knight_death: [],
+  tower_combat_atlas: [],
+
+  projectile_magic: [],
+  projectile_cannon: [],
+  vfx_explosion: [],
+}
 const imgSources = (n) => {
   if (window.IMG_DATA && window.IMG_DATA[n]) return [window.IMG_DATA[n]];
   return ASSET_CANDIDATES[n] || [`assets/img/${n}.webp`];
@@ -929,17 +938,9 @@ async function boot() {
     });
   }).catch((err) => console.warn('2D asset load warning:', err));
 
-  // 3D hero is optional and loads after the playable scene is already visible.
-  try {
-    hero.view = new GLBView(288, 320);
-    await Promise.all([1, 2, 3].map(async (n) => {
-      hero.models[n] = await hero.view.load(`assets/hero/hero_stage${n}.glb`);
-    }));
-    hero.ok = true; $('heroTag').textContent = '3D';
-  } catch (err) {
-    console.warn('3D hero disabled:', err);
-    $('heroTag').textContent = '2D';
-  }
+  // Clean preview: keep the hero in the same 2D art family as towers/enemies.
+  hero.ok = false;
+  $('heroTag').textContent = '2D';
   window.__game = { S, pads, iso, hero, update, render, startWave, ready: true };
 }
 boot();

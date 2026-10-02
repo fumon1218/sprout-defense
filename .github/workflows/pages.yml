@@ -33,11 +33,18 @@ jobs:
         with:
           enablement: true
 
+      - name: Remove non-runtime files
+        run: |
+          rm -f assets/hero/hero_data.js
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
+          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
           path: .
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}

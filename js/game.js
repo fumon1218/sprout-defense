@@ -127,6 +127,10 @@ const ASSET_CANDIDATES = {
   hero_stage2: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage2.webp'],
   hero_stage3: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage3.webp'],
   friendly_soldier: ['assets/units/foot-soldier.webp', 'assets/units/foot-soldier.png', 'assets/img/hero_stage1.webp'],
+  anim_knight_idle: ['assets/animations/knight/idle-strip.webp'],
+  anim_knight_walk: ['assets/animations/knight/walk-strip.webp'],
+  anim_knight_attack: ['assets/animations/knight/attack-strip.webp'],
+  anim_knight_death: ['assets/animations/knight/death-strip.webp'],
   projectile_magic: ['assets/projectiles/arcane-orb.webp', 'assets/projectiles/arcane-orb.png'],
   projectile_cannon: ['assets/projectiles/cannonball.webp', 'assets/projectiles/cannonball.png'],
   vfx_explosion: ['assets/vfx/explosion.webp', 'assets/vfx/explosion.png'],
@@ -155,6 +159,7 @@ const IMG_NAMES = ['map_background', 'map_pad', 'map_core', 'map_path', 'map_dec
   'tower_wall', 'tower_wall_l2', 'tower_wall_l3',
   'enemy_crawler', 'enemy_soldier', 'enemy_armored', 'enemy_shaman', 'enemy_flyer', 'enemy_golem', 'enemy_boss',
   'hero_stage1', 'hero_stage2', 'hero_stage3', 'friendly_soldier',
+  'anim_knight_idle', 'anim_knight_walk', 'anim_knight_attack', 'anim_knight_death',
   'projectile_magic', 'projectile_cannon', 'vfx_explosion'];
 
 // ---------- state ----------
@@ -225,7 +230,7 @@ function syncBarracks(t, towerKey) {
   while (own.length < wanted) {
     const slot = own.length;
     const hp = 90 + 40 * (t.lvl - 1);
-    const unit = { towerKey, slot, homeD: homeD + (slot - (wanted - 1) / 2) * 0.16, hp, max: hp, cd: 0, dead: false, respawn: 0, target: null, attackT: 0, hurtT: 0, stepT: slot * 0.45 };
+    const unit = { towerKey, slot, homeD: homeD + (slot - (wanted - 1) / 2) * 0.16, visualD: homeD, hp, max: hp, cd: 0, dead: false, respawn: 0, target: null, attackT: 0, hurtT: 0, stepT: slot * 0.45, animT: slot * .12 };
     S.guards.push(unit); own.push(unit);
   }
   for (const unit of own) {
@@ -324,6 +329,12 @@ function update(dt) {
     guard.attackT = Math.max(0, (guard.attackT || 0) - dt);
     guard.hurtT = Math.max(0, (guard.hurtT || 0) - dt);
     guard.stepT = (guard.stepT || 0) + dt * (target ? 6.2 : 3.3);
+    guard.animT = (guard.animT || 0) + dt;
+    const desiredD = target && !target.dead ? target.d : guard.homeD;
+    if (guard.visualD == null) guard.visualD = guard.homeD;
+    const deltaD = desiredD - guard.visualD;
+    const maxStep = 1.15 * dt;
+    guard.visualD += Math.max(-maxStep, Math.min(maxStep, deltaD));
     if (target) {
       target.blocked = true;
       target.attackT = Math.max(target.attackT || 0, 0.18);
@@ -537,6 +548,29 @@ function sprite(name, x, y, h, flip) { // bottom-centre anchored
   const w = im.width * h / im.height;
   ctx.save(); ctx.translate(x, y); if (flip) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, -h, w, h); ctx.restore();
 }
+const STRIP_META = {
+  anim_knight_idle: { frames:4, fps:6 },
+  anim_knight_walk: { frames:8, fps:12 },
+  anim_knight_attack: { frames:6, fps:15 },
+  anim_knight_death: { frames:7, fps:10, once:true },
+};
+function stripAvailable(name) { return !!IMG[name]; }
+function drawStrip(name, x, y, h, time, opt = {}) {
+  const im = IMG[name], meta = STRIP_META[name];
+  if (!im || !meta) return false;
+  const fw = im.width / meta.frames, fh = im.height;
+  let frame = Math.floor(time * meta.fps);
+  if (meta.once) frame = Math.min(meta.frames - 1, frame);
+  else frame %= meta.frames;
+  const w = fw * h / fh;
+  ctx.save();
+  ctx.globalAlpha = opt.alpha == null ? 1 : opt.alpha;
+  ctx.translate(x + (opt.dx || 0), y + (opt.dy || 0));
+  if (opt.flip) ctx.scale(-1,1);
+  ctx.drawImage(im, frame * fw, 0, fw, fh, -w/2, -h, w, h);
+  ctx.restore();
+  return true;
+}
 function spriteMotion(name, x, y, h, opt = {}) {
   const im = IMG[name]; if (!im) return;
   const sx = (opt.flip ? -1 : 1) * (opt.sx || 1), sy = opt.sy || 1;
@@ -621,22 +655,33 @@ function render() {
   }
   for (const guard of S.guards) {
     if (guard.dead) continue;
-    const targetD = guard.target && !guard.target.dead ? guard.target.d : guard.homeD;
+    const targetD = guard.visualD == null ? guard.homeD : guard.visualD;
     const [gx, gy] = posAt(targetD), c = iso(gx, gy);
     items.push({ d: gx + gy + 0.46 + guard.slot * 0.001, f: () => {
       const dx = (guard.slot % 2 === 0 ? -9 : 9);
       const attacking = (guard.attackT || 0) > 0;
-      const swing = attacking ? Math.sin((guard.attackT / 0.18) * Math.PI) : 0;
-      const step = guard.target ? Math.sin(guard.stepT || 0) : Math.sin((guard.stepT || 0) * 0.45) * 0.35;
-      spriteMotion('friendly_soldier', c.x + dx, c.y + 5, 54, {
-        flip: guard.slot % 2 === 1,
-        dy: -Math.abs(step) * 2,
-        rot: attacking ? (guard.slot % 2 ? -1 : 1) * 0.12 * swing : step * 0.02,
-        sx: 1 + 0.04 * swing,
-        sy: 1 - 0.04 * swing,
-        flash: guard.hurtT > 0 ? 0.45 : 0
-      });
-      hpBar(c.x + dx, c.y - 55, 30, guard.hp / guard.max);
+      const moving = Math.abs((guard.target && !guard.target.dead ? guard.target.d : guard.homeD) - targetD) > .03;
+      const flip = guard.slot % 2 === 1;
+      let animated = false;
+      if (attacking) {
+        const attackElapsed = .18 - guard.attackT;
+        animated = drawStrip('anim_knight_attack', c.x + dx, c.y + 6, 62, attackElapsed * 2.1, {flip});
+      } else if (moving) {
+        animated = drawStrip('anim_knight_walk', c.x + dx, c.y + 6, 60, guard.animT || 0, {flip});
+      } else {
+        animated = drawStrip('anim_knight_idle', c.x + dx, c.y + 6, 60, guard.animT || 0, {flip});
+      }
+      if (!animated) {
+        const swing = attacking ? Math.sin((guard.attackT / 0.18) * Math.PI) : 0;
+        const step = moving ? Math.sin(guard.stepT || 0) : Math.sin((guard.stepT || 0) * .45) * .35;
+        spriteMotion('friendly_soldier', c.x + dx, c.y + 5, 54, {
+          flip, dy:-Math.abs(step)*2,
+          rot:attacking ? (flip ? -1 : 1)*.12*swing : step*.02,
+          sx:1+.04*swing, sy:1-.04*swing,
+          flash:guard.hurtT > 0 ? .45 : 0
+        });
+      }
+      hpBar(c.x + dx, c.y - 62, 32, guard.hp / guard.max);
     }});
   }
   for (const dead of S.deaths) {

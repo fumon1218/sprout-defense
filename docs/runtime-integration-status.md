@@ -13,6 +13,9 @@ An Excel row is counted as runtime-complete only when:
 - Excel mapping: 166 / 166
 - Current binary/runtime files under `assets/`: 38
 - Missing asset-path references in current `game.js`: 0
+- Distinct asset paths currently referenced by `game.js`: 26
+- Demo tower pads validated: 4 / 4
+- Runtime registry added for staged 166-row integration
 - Stage 1 build-pad selection/range alignment: fixed
 - Latest Pages deployment before this audit: success
 - Full 166-row runtime completion: **not yet complete**

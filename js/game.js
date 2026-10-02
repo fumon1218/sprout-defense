@@ -114,13 +114,13 @@ const ASSET_CANDIDATES = {
   map_path: ['assets/img/map_path.webp'],
   map_decor: ['assets/img/map_decor.webp'],
 
-  tower_ballista: ['assets/towers/archer/archer-l1.webp'],
+  tower_ballista: ['assets/img/tower_ballista.webp','assets/towers/archer/archer-l1.webp'],
   tower_ballista_l2: ['assets/img/tower_ballista.webp','assets/towers/archer/archer-l1.webp'],
   tower_ballista_l3: ['assets/img/tower_ballista.webp','assets/towers/archer/archer-l1.webp'],
   tower_mortar: ['assets/img/tower_mortar.webp'],
   tower_mortar_l2: ['assets/img/tower_mortar.webp'],
   tower_mortar_l3: ['assets/img/tower_mortar.webp'],
-  tower_vine: ['assets/towers/mage/mage-l1.webp'],
+  tower_vine: ['assets/img/tower_vine.webp','assets/towers/mage/mage-l1.webp'],
   tower_vine_l2: ['assets/img/tower_vine.webp','assets/towers/mage/mage-l1.webp'],
   tower_vine_l3: ['assets/img/tower_vine.webp','assets/towers/mage/mage-l1.webp'],
   tower_wall: ['assets/towers/barracks/barracks-l1.webp'],
@@ -878,14 +878,18 @@ function render() {
       const atk = t.attackT || 0;
       const towerH=d.h*(1+.07*(t.lvl-1));
       let animated=false;
+      // The shared combat atlas contains operator/effect frames, not full tower replacements.
+      // Keep archer and mage tower bodies intact and overlay only their combat animation.
       if(atk>0 && IMG.tower_combat_atlas){
         if(t.type==='ballista'){
-          // Keep the wooden tower body stable; only animate the archer operator.
           spriteMotion(towerSpriteName(t),c.x,c.y+10,towerH,{});
           const elapsed=.34-atk;
-          animated=drawTowerCombatFrame('archer',c.x,c.y-18,64,elapsed,{});
+          drawTowerCombatFrame('archer',c.x,c.y-18,64,elapsed,{});
+          animated=true;
         }else if(t.type==='vine'){
-          animated=drawTowerCombatFrame('mage',c.x,c.y+10,towerH,.50-atk,{});
+          spriteMotion(towerSpriteName(t),c.x,c.y+10,towerH,{});
+          drawTowerCombatFrame('mage',c.x,c.y-12,64,.50-atk,{});
+          animated=true;
         }else if(t.type==='mortar'){
           const elapsed=.76-atk;
           if(elapsed<=.46) animated=drawTowerCombatFrame('artilleryFire',c.x,c.y+10,towerH,elapsed,{});

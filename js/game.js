@@ -83,18 +83,11 @@ for (let k = 1; k < WAY.length; k++) {
   }
 }
 const CORE = WAY[WAY.length - 1];
-const pads = new Set();
-for (const kk of pathCells.keys()) {
-  const [i, j] = kk.split(',').map(Number);
-  for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    const ni = i + di, nj = j + dj;
-    if (ni < 0 || nj < 0 || ni >= N || nj >= N) continue;
-    if (pathCells.has(key(ni, nj))) continue;
-    if ((ni + nj) % 2 !== 0) continue;
-    pads.add(key(ni, nj));
-  }
-}
-pads.delete(key(...HERO_CELL));
+const pads = new Set([
+  '0,2','2,2','3,3','5,3','6,2','8,2',
+  '8,4','7,5','6,6','4,6','2,8','6,8'
+]);
+
 const DECOR = new Set(['0,9', '9,0', '0,5', '9,3', '5,9', '4,6'].filter((k) => !pathCells.has(k) && !pads.has(k)));
 
 // ---------- assets ----------

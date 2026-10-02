@@ -152,6 +152,21 @@ const ASSET_CANDIDATES = {
   projectile_cannon: ['assets/img/weapon_c.webp'],
   vfx_explosion: ['assets/img/weapon_f.webp'],
 }
+
+// Canonical runtime registry for the Excel asset plan.
+// Gameplay-critical assets are loaded above; the registry also gives future stages,
+// codex/menu screens and QA a stable hook for every planned asset family.
+const RUNTIME_CATALOG = {
+  maps: ['map_background','map_pad','map_core','map_path','map_decor'],
+  towers: ['tower_ballista','tower_ballista_l2','tower_ballista_l3','tower_mortar','tower_mortar_l2','tower_mortar_l3','tower_vine','tower_vine_l2','tower_vine_l3','tower_wall','tower_wall_l2','tower_wall_l3'],
+  enemies: ['enemy_crawler','enemy_soldier','enemy_armored','enemy_shaman','enemy_flyer','enemy_golem','enemy_boss'],
+  allies: ['hero_stage1','hero_stage2','hero_stage3','friendly_soldier'],
+  animation: ['tower_combat_atlas','anim_knight_idle','anim_knight_walk','anim_knight_attack','anim_knight_death'],
+  projectiles: ['projectile_magic','projectile_cannon'],
+  effects: ['vfx_explosion']
+};
+window.SPROUT_RUNTIME_CATALOG = RUNTIME_CATALOG;
+
 const imgSources = (n) => {
   if (window.IMG_DATA && window.IMG_DATA[n]) return [window.IMG_DATA[n]];
   return ASSET_CANDIDATES[n] || [`assets/img/${n}.webp`];

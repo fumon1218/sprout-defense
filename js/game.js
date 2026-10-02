@@ -332,16 +332,11 @@ function update(dt) {
     guard.attackT = Math.max(0, (guard.attackT || 0) - dt);
     guard.hurtT = Math.max(0, (guard.hurtT || 0) - dt);
     guard.stepT = (guard.stepT || 0) + dt;
-    const desiredD = target && !target.dead ? target.d : guard.homeD;
-    if (guard.displayD == null) guard.displayD = guard.homeD;
-    const deltaD = desiredD - guard.displayD;
-    const maxStep = (target ? 1.25 : .9) * dt;
-    guard.displayD += Math.max(-maxStep, Math.min(maxStep, deltaD));
     guard.animT = (guard.animT || 0) + dt;
     const desiredD = target && !target.dead ? target.d : guard.homeD;
     if (guard.visualD == null) guard.visualD = guard.homeD;
     const deltaD = desiredD - guard.visualD;
-    const maxStep = 1.15 * dt;
+    const maxStep = (target ? 1.25 : .9) * dt;
     guard.visualD += Math.max(-maxStep, Math.min(maxStep, deltaD));
     if (target) {
       target.blocked = true;

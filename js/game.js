@@ -9,6 +9,19 @@ const RX = TW / Math.SQRT2, RY = TH / Math.SQRT2; // ellipse radii of a 1-tile c
 
 const WAY = [[0, 1], [7, 1], [7, 4], [2, 4], [2, 7], [8, 7], [8, 9]];
 const HERO_CELL = [4, 2];
+// Visual positions are matched to the circular build pads painted into the Stage 1 background.
+const PAD_SCREEN = new Map([
+  ['0,2',[170,210]], ['2,2',[330,250]], ['3,3',[475,305]], ['5,3',[640,300]],
+  ['6,2',[780,260]], ['8,2',[960,300]], ['8,4',[1030,430]], ['7,5',[900,520]],
+  ['6,6',[760,585]], ['4,6',[590,570]], ['2,8',[360,610]], ['6,8',[835,650]]
+]);
+const HERO_SCREEN = { x: 930, y: 210 };
+const padScreen = (k) => {
+  const p = PAD_SCREEN.get(k);
+  if (p) return {x:p[0],y:p[1]};
+  const [i,j] = k.split(',').map(Number);
+  return iso(i + 0.5, j + 0.5);
+};
 const START_LIVES = 20, START_GOLD = 220, LAST_WAVE = 10;
 
 const TOWERS = {
@@ -122,10 +135,10 @@ const ASSET_CANDIDATES = {
   enemy_golem: ['assets/img/enemy_golem.webp'],
   enemy_boss: ['assets/img/enemy_boss.webp'],
 
-  hero_stage1: ['assets/img/hero_stage1.webp'],
-  hero_stage2: ['assets/img/hero_stage2.webp'],
-  hero_stage3: ['assets/img/hero_stage3.webp'],
-  friendly_soldier: ['assets/img/hero_stage1.webp'],
+  hero_stage1: ['assets/units/hero-knight.webp'],
+  hero_stage2: ['assets/units/hero-knight.webp'],
+  hero_stage3: ['assets/units/hero-knight.webp'],
+  friendly_soldier: ['assets/units/friendly-knight.webp'],
 
   // Disable unverified animation atlases in the public preview.
   friendly_soldier_atlas: [],
@@ -819,10 +832,10 @@ function render() {
   const core = iso(CORE[0] + 0.5, CORE[1] + 0.5);
   if (!hasBackdrop && IMG.map_core) items.push({ d: CORE[0] + CORE[1] + 1, f: () => { drawTileImg('map_core', core, 1.12); } });
   for (const k of DECOR) { const [i, j] = k.split(',').map(Number); items.push({ d: i + j, f: () => drawTileImg('map_decor', iso(i + 0.5, j + 0.5), 1.05) }); }
-  const hc = iso(HERO_CELL[0] + 0.5, HERO_CELL[1] + 0.5);
-  items.push({ d: HERO_CELL[0] + HERO_CELL[1] + 1.2, f: () => drawHero(hc) });
+  const hc = HERO_SCREEN;
+  items.push({ d: 20, f: () => drawHero(hc) });
   for (const t of S.towers.values()) {
-    const c = iso(t.i + 0.5, t.j + 0.5), d = TOWERS[t.type];
+    const c = padScreen(key(t.i,t.j)), d = TOWERS[t.type];
     items.push({ d: t.i + t.j + 1, f: () => {
       const atk = t.attackT || 0;
       const towerH=d.h*(1+.07*(t.lvl-1));
@@ -1006,25 +1019,39 @@ function refreshHUD() {
 }
 
 // ---------- input ----------
-function cellAt(ev) {
-  const r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) * W / r.width, y = (ev.clientY - r.top) * H / r.height;
-  const { gx, gy } = uniso(x, y); return [Math.floor(gx), Math.floor(gy)];
+function pointerXY(ev) {
+  const r = cv.getBoundingClientRect();
+  return { x:(ev.clientX-r.left)*W/r.width, y:(ev.clientY-r.top)*H/r.height };
 }
-cv.addEventListener('pointermove', (ev) => { S.hover = cellAt(ev); });
+function padAt(ev) {
+  const p = pointerXY(ev);
+  let best = null, bestD = 52;
+  for (const [k,[x,y]] of PAD_SCREEN) {
+    const d = Math.hypot(p.x-x,p.y-y);
+    if (d < bestD) { bestD=d; best=k; }
+  }
+  return best;
+}
+cv.addEventListener('pointermove', (ev) => {
+  const k = padAt(ev);
+  S.hover = k ? k.split(',').map(Number) : null;
+});
 cv.addEventListener('pointerleave', () => { S.hover = null; });
 cv.addEventListener('pointerdown', (ev) => {
   if (S.over) return;
-  const [i, j] = cellAt(ev), k = key(i, j);
+  const k = padAt(ev);
+  if (!k) { S.sel=null; S.build=null; refreshHUD(); return; }
+  const [i,j] = k.split(',').map(Number);
   if (S.towers.has(k)) { S.sel = k; S.build = null; refreshHUD(); return; }
   if (S.build && pads.has(k)) {
     const d = TOWERS[S.build];
     if (S.gold < d.cost) { toast('골드가 부족합니다'); return; }
-    S.gold -= d.cost; S.towers.set(k, { type: S.build, i, j, lvl: 1, cool: 0, targetMode: 'first' });
+    S.gold -= d.cost;
+    S.towers.set(k, { type:S.build, i, j, lvl:1, cool:0, targetMode:'first' });
     syncBarracks(S.towers.get(k), k);
-    addFx({ gx: i + 0.5, gy: j + 0.5, r: 0.9, dur: 0.4, color: '120,255,160', ring: true, fill: true, alpha: 0.8 });
     S.sel = k; refreshHUD(); return;
   }
-  S.sel = null; if (!pads.has(k)) S.build = null; refreshHUD();
+  S.sel = null; refreshHUD();
 });
 document.querySelectorAll('.tbtn').forEach((b) => b.addEventListener('click', () => { S.build = S.build === b.dataset.t ? null : b.dataset.t; S.sel = null; refreshHUD(); }));
 for (const k in SKILLS) $('sk_' + k).addEventListener('click', () => useSkill(k));

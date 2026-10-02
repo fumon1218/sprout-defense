@@ -57,3 +57,23 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #wavePrep small{font-size:.68rem;color:var(--muted);margin-bottom:2px}
 #wavePrep strong{font-size:.76rem;line-height:1.3;color:#dce8d8;font-weight:600;max-width:290px}
 @media(max-width:760px){#wavePrep{order:8;flex:1 1 100%;min-width:0}}
+
+/* 2026-10 battle-menu visual pass: fantasy mobile HUD, no generic debug chrome */
+#top{min-height:58px;padding:7px 10px;border:1px solid #6e5930;border-radius:14px;background:linear-gradient(180deg,rgba(52,70,38,.96),rgba(25,39,25,.98));box-shadow:0 4px 0 #171d13,0 8px 22px rgba(0,0,0,.32)}
+.brand{display:flex;align-items:center;gap:9px}.crest{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f8df82,#b77a26 65%,#633c17);border:2px solid #f0ce70;box-shadow:inset 0 0 0 3px rgba(75,43,17,.38)}
+h1{font-weight:900;color:#fff5cf;text-shadow:0 2px 0 #493319}
+h1 small{color:#dff0bd;background:rgba(13,30,16,.58);border-color:#7c9655;border-radius:999px;padding:3px 8px}
+.stats{gap:7px}.stat{height:36px;min-width:82px;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 11px;border:1px solid #8b7442;border-radius:999px;background:linear-gradient(#253a25,#172519);box-shadow:inset 0 1px rgba(255,255,255,.12),0 2px 4px rgba(0,0,0,.3)}
+.stat i{font-style:normal;font-weight:900}.stat.gold i{color:#ffd55b}.stat.lives i{color:#8fe77b}.stat.wave i{color:#d9e6ff}.roundBtn{width:44px;height:36px;padding:0;border-radius:999px;border-color:#9a7b40;background:linear-gradient(#4d6135,#26391f);font-weight:900;color:#fff2c0}
+#stage{border:2px solid #67522f;border-radius:15px;box-shadow:0 7px 0 #17150e,0 15px 34px rgba(0,0,0,.4)}
+#bar{position:relative;padding:18px 10px 10px;border:2px solid #6f5932;border-radius:15px;background:linear-gradient(180deg,#2d3b27,#172319);box-shadow:0 5px 0 #11170f,0 10px 25px rgba(0,0,0,.3)}
+.barTitle{position:absolute;left:14px;top:-9px;padding:2px 10px;border-radius:999px;background:#d7aa4d;border:2px solid #62451f;color:#30200e;font-size:.62rem;font-weight:1000;letter-spacing:.12em}
+.tbtn{min-width:128px;border:1px solid #6f613d;border-radius:12px;background:linear-gradient(#35472d,#202e20);box-shadow:inset 0 1px rgba(255,255,255,.09),0 3px 0 #10170f;transition:transform .08s,border-color .12s}
+.tbtn:hover:not(:disabled){transform:translateY(-1px);border-color:#e1c46b}.tbtn.sel{border:2px solid #f3d36c;background:linear-gradient(#4d6239,#263b26);box-shadow:0 0 0 2px rgba(243,211,108,.16),0 3px 0 #10170f}
+.tbtn img{width:48px;height:48px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.38))}.tbtn span{font-weight:800;color:#f4edcf}.tbtn em{margin-top:3px;font-weight:900;color:#ffd45b}
+.sk{min-width:108px;justify-content:center;border:1px solid #6d5c88;border-radius:12px;background:linear-gradient(#423852,#25263b);box-shadow:inset 0 1px rgba(255,255,255,.1),0 3px 0 #151421}.sk:hover:not(:disabled){border-color:#c9a9ff}.sk kbd{padding:1px 5px;border-radius:5px;background:#171526;border:1px solid #675c82;color:#cfc2e8}
+#wavePrep{border-color:#6e613f;border-radius:11px;background:linear-gradient(#313e29,#202b1e);box-shadow:inset 0 1px rgba(255,255,255,.07)}
+#startBtn{border:2px solid #f3d478;border-radius:13px;background:linear-gradient(#88d85f,#4f9f46);box-shadow:inset 0 1px rgba(255,255,255,.35),0 4px 0 #28582c;color:#102510;text-shadow:0 1px rgba(255,255,255,.3)}
+#panel{border:2px solid #b89a59;border-radius:13px;background:linear-gradient(180deg,rgba(50,58,37,.96),rgba(22,31,22,.97));box-shadow:0 6px 20px rgba(0,0,0,.42)}
+#help{text-align:center;padding:4px 8px;color:#a9b9a0}
+@media(max-width:760px){#top{padding:6px}.brand{width:100%;justify-content:center}.stats{width:100%;justify-content:center;flex-wrap:wrap}.stat{min-width:72px;height:32px}.tbtn{min-width:calc(50% - 4px);flex:1 1 calc(50% - 4px)}#skills{width:100%}.sk{flex:1}.barTitle{display:none}}

@@ -44,6 +44,15 @@ const SKILLS = {
   bloom: { name: '긴급 지원', cd: 45, key: 'E' },
 };
 const heroStage = (wave) => (wave <= 3 ? 1 : wave <= 6 ? 2 : 3);
+const WAVE_HINTS = {
+  1: ['정찰대 접근', '빠른 고블린이 처음 등장합니다. 궁수 타워로 길목을 지켜보세요.'],
+  3: ['오크 전사 등장', '고블린보다 체력이 높습니다. 타워를 분산 배치하세요.'],
+  4: ['갑옷 오크 등장', '물리 피해를 줄여 받습니다. 마법 타워가 효과적입니다.'],
+  5: ['비행 적 등장', '박쥐는 병영과 포병을 무시합니다. 궁수·마법 타워를 준비하세요.'],
+  6: ['오크 샤먼 등장', '주변 지상 적을 회복합니다. 우선 처치가 중요합니다.'],
+  7: ['산악 트롤 등장', '느리지만 매우 튼튼합니다. 병영으로 시간을 버세요.'],
+  10:['최종 웨이브', '오우거 군주가 직접 진격합니다. 모든 자원을 사용하세요.']
+};
 
 // ---------- map ----------
 const pathPts = WAY.map(([i, j]) => [i + 0.5, j + 0.5]);
@@ -164,6 +173,18 @@ const heroBuff = (t) => (Math.hypot(t.i - HERO_CELL[0], t.j - HERO_CELL[1]) <= 2
 const upgradeCost = (t) => Math.round(TOWERS[t.type].cost * (t.lvl === 1 ? 0.8 : 1.2));
 const sellValue = (t) => { let v = TOWERS[t.type].cost; for (let l = 1; l < t.lvl; l++) v += Math.round(TOWERS[t.type].cost * (l === 1 ? 0.8 : 1.2)); return Math.round(v * 0.6); };
 function toast(msg) { const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 1800); }
+function showWaveIntro(wave) {
+  const h = WAVE_HINTS[wave]; if (!h) return;
+  $('waveIntroTitle').textContent = h[0]; $('waveIntroText').textContent = h[1];
+  $('waveIntro').hidden = false; clearTimeout(showWaveIntro.t);
+  showWaveIntro.t = setTimeout(() => $('waveIntro').hidden = true, 3200);
+}
+function refreshBossHud() {
+  const boss = S.enemies.find((e) => e.type === 'boss' && !e.dead);
+  const hud = $('bossHud');
+  hud.hidden = !boss;
+  if (boss) $('bossFill').style.width = Math.max(0, Math.min(100, boss.hp / boss.max * 100)) + '%';
+}
 const addFx = (o) => S.fx.push({ t: 0, dur: 0.5, ...o });
 function applyDamage(e, amount, kind = 'physical') {
   const d = ENEMIES[e.type];
@@ -208,6 +229,7 @@ function startWave() {
   // interleave for variety
   list.sort(() => Math.random() - 0.5);
   S.queue = list; S.spawnT = 0.4;
+  showWaveIntro(S.wave);
   const st = heroStage(S.wave);
   if (st !== S.heroStage) { S.heroStage = st; toast(`지휘관의 전투 오라가 ${st === 2 ? '강화' : '최대로 강화'}되었습니다!`); }
   refreshHUD();
@@ -355,10 +377,11 @@ function update(dt) {
     e.d += d.speed * m * rage * dt;
     if (e.d >= total) {
       e.dead = true; S.lives -= d.dmg; addFx({ gx: CORE[0] + 0.5, gy: CORE[1] + 0.5, r: 1.2, dur: 0.5, color: '255,90,90', ring: true, alpha: 0.6 });
-      refreshHUD(); if (S.lives <= 0) endGame(false);
-    } else if (e.hp <= 0) { e.dead = true; S.gold += d.reward; const p = posAt(e.d); addFx({ gx: p[0], gy: p[1], text: '+' + d.reward, dur: 0.8, color: '255,214,90' }); refreshHUD(); }
+      refreshHUD(); refreshBossHud(); if (S.lives <= 0) endGame(false);
+    } else if (e.hp <= 0) { e.dead = true; S.gold += d.reward; const p = posAt(e.d); addFx({ gx: p[0], gy: p[1], text: '+' + d.reward, dur: 0.8, color: '255,214,90' }); refreshHUD(); refreshBossHud(); }
   }
   S.enemies = S.enemies.filter((e) => !e.dead);
+  refreshBossHud();
   // shots
   for (const s of S.shots) {
     s.t += dt;

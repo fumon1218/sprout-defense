@@ -127,6 +127,9 @@ const ASSET_CANDIDATES = {
   hero_stage2: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage2.webp'],
   hero_stage3: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage3.webp'],
   friendly_soldier: ['assets/units/foot-soldier.webp', 'assets/units/foot-soldier.png', 'assets/img/hero_stage1.webp'],
+  projectile_magic: ['assets/projectiles/arcane-orb.webp', 'assets/projectiles/arcane-orb.png'],
+  projectile_cannon: ['assets/projectiles/cannonball.webp', 'assets/projectiles/cannonball.png'],
+  vfx_explosion: ['assets/vfx/explosion.webp', 'assets/vfx/explosion.png'],
 };
 const imgSources = (n) => {
   if (window.IMG_DATA && window.IMG_DATA[n]) return [window.IMG_DATA[n]];
@@ -150,7 +153,9 @@ const IMG_NAMES = ['map_background', 'map_pad', 'map_core', 'map_path', 'map_dec
   'tower_mortar', 'tower_mortar_l2', 'tower_mortar_l3',
   'tower_vine', 'tower_vine_l2', 'tower_vine_l3',
   'tower_wall', 'tower_wall_l2', 'tower_wall_l3',
-  'enemy_crawler', 'enemy_soldier', 'enemy_armored', 'enemy_shaman', 'enemy_flyer', 'enemy_golem', 'enemy_boss', 'hero_stage1', 'hero_stage2', 'hero_stage3', 'friendly_soldier'];
+  'enemy_crawler', 'enemy_soldier', 'enemy_armored', 'enemy_shaman', 'enemy_flyer', 'enemy_golem', 'enemy_boss',
+  'hero_stage1', 'hero_stage2', 'hero_stage3', 'friendly_soldier',
+  'projectile_magic', 'projectile_cannon', 'vfx_explosion'];
 
 // ---------- state ----------
 const cv = document.getElementById('game'); cv.width = W; cv.height = H;
@@ -497,6 +502,12 @@ function ring(gx, gy, r, color, alpha, fill, dashed) {
   if (fill) { ctx.fillStyle = `rgba(${color},${alpha * 0.25})`; ctx.fill(); }
   ctx.strokeStyle = `rgba(${color},${alpha})`; ctx.lineWidth = 2; if (dashed) ctx.setLineDash([8, 6]); ctx.stroke(); ctx.restore();
 }
+function drawSpriteCentered(name, x, y, h, angle = 0) {
+  const im = IMG[name]; if (!im) return false;
+  const w = im.width * h / im.height;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.drawImage(im, -w/2, -h/2, w, h); ctx.restore();
+  return true;
+}
 function towerSpriteName(t) {
   return t.lvl <= 1 ? TOWERS[t.type].img : `${TOWERS[t.type].img}_l${Math.min(3, t.lvl)}`;
 }
@@ -601,9 +612,14 @@ function render() {
       ctx.strokeStyle = `rgba(245,225,155,${1 - s.t / s.dur})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(a.x, a.y - 60); ctx.lineTo(b.x, b.y - 30); ctx.stroke();
     } else if (s.kind === 'magic') {
       const p = Math.min(1, s.t / s.dur), x = a.x + (b.x - a.x) * p, y = a.y - 65 + (b.y - a.y + 40) * p;
-      const glow = 1 - p * 0.45; ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = '#5cc8ff'; ctx.fillStyle = `rgba(100,170,255,${glow})`; ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.restore();
+      if (!drawSpriteCentered('projectile_magic', x, y, 30)) {
+        const glow = 1 - p * 0.45; ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = '#5cc8ff'; ctx.fillStyle = `rgba(100,170,255,${glow})`; ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.restore();
+      }
     } else {
-      const p = Math.min(1, s.t / s.dur), x = a.x + (b.x - a.x) * p, y = a.y - 70 + (b.y - a.y + 70) * p - Math.sin(p * Math.PI) * 90; ctx.fillStyle = '#ffb04a'; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill();
+      const p = Math.min(1, s.t / s.dur), x = a.x + (b.x - a.x) * p, y = a.y - 70 + (b.y - a.y + 70) * p - Math.sin(p * Math.PI) * 90;
+      if (!drawSpriteCentered('projectile_cannon', x, y, 26)) {
+        ctx.fillStyle = '#ffb04a'; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill();
+      }
     }
   }
   for (const f of S.fx) if (f.text) { const c = iso(f.gx, f.gy), p = f.t / f.dur; ctx.fillStyle = `rgba(${f.color},${1 - p})`; ctx.font = '700 20px system-ui'; ctx.textAlign = 'center'; ctx.fillText(f.text, c.x, c.y - 70 - p * 30); }

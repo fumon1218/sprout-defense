@@ -626,9 +626,15 @@ function render() {
 }
 
 // ---------- HUD ----------
+function nextWaveSummary() {
+  if (S.wave >= LAST_WAVE) return '최종 전투 완료';
+  const wave = WAVES[S.wave];
+  return wave.map(([type,n]) => `${ENEMIES[type].name} ×${n}`).join(' · ');
+}
 function refreshHUD() {
   $('gold').textContent = S.gold; $('lives').textContent = S.lives; $('wave').textContent = `${S.wave} / ${LAST_WAVE}`;
   $('startBtn').disabled = S.phase !== 'prep' || S.over;
+  $('nextWave').textContent = S.phase === 'prep' ? nextWaveSummary() : '현재 웨이브 진행 중';
   $('startBtn').textContent = S.over ? '종료' : S.wave === 0 ? '전투 시작' : S.phase === 'prep' ? `웨이브 ${S.wave + 1} 시작` : '전투 중...';
   document.querySelectorAll('.tbtn').forEach((b) => { const d = TOWERS[b.dataset.t]; b.classList.toggle('sel', S.build === b.dataset.t); b.classList.toggle('poor', S.gold < d.cost); });
   for (const k in SKILLS) { const b = $('sk_' + k), cd = S.cd[k]; b.disabled = cd > 0; b.querySelector('.cdv').textContent = cd > 0 ? Math.ceil(cd) : ''; }

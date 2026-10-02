@@ -42,3 +42,13 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #startBtn:disabled{background:var(--panel);color:var(--muted);border-color:var(--line)}
 #help{margin:0;color:var(--muted);font-size:.8rem}
 @media (max-width:640px){#bar{gap:6px}.tbtn img{width:34px;height:34px}#startBtn{flex:1 1 100%}#panel{min-width:170px}}
+
+#waveIntro{position:absolute;left:50%;top:82px;transform:translateX(-50%);min-width:280px;max-width:70%;padding:10px 18px;border-radius:10px;background:rgba(16,22,15,.9);border:1px solid rgba(218,185,100,.75);text-align:center;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#waveIntro[hidden]{display:none}
+#waveIntro strong{display:block;color:#f2d47a;font-size:1rem}
+#waveIntro span{display:block;margin-top:2px;color:#dce7d6;font-size:.82rem}
+#bossHud{position:absolute;left:50%;top:14px;transform:translateX(-50%);width:min(520px,72%);padding:7px 10px;border-radius:9px;background:rgba(24,12,10,.88);border:1px solid rgba(235,105,68,.8);box-shadow:0 8px 22px rgba(0,0,0,.4)}
+#bossHud[hidden]{display:none}
+#bossHud>span{display:block;text-align:center;font-weight:800;color:#ffd7bd;font-size:.82rem;margin-bottom:5px}
+#bossHud>div{height:11px;background:#24110f;border:1px solid #5e2b22;border-radius:999px;overflow:hidden}
+#bossFill{display:block;height:100%;width:100%;background:linear-gradient(90deg,#b62c20,#f47b3e);transition:width .12s linear}

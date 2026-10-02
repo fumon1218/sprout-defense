@@ -15,7 +15,7 @@ const TOWERS = {
   ballista: { name: '궁수 타워', img: 'tower_ballista', cost: 60, range: 3.3, dmg: 22, cd: 0.7, h: 92, desc: '빠른 물리 단일 공격' },
   mortar:   { name: '포병 타워', img: 'tower_mortar',   cost: 90, range: 3.7, dmg: 42, cd: 1.7, splash: 1.15, h: 104, desc: '느리지만 강한 범위 공격' },
   vine:     { name: '마법 타워', img: 'tower_vine',     cost: 70, range: 2.6, dot: 13, slow: 0.68, h: 128, desc: '마법 피해와 약한 감속' },
-  wall:     { name: '병영',       img: 'tower_wall',     cost: 45, range: 1.8, slow: 0.36, h: 66, desc: '병사가 길목을 지키는 방어 거점' },
+  wall:     { name: '병영',       img: 'tower_wall',     cost: 45, range: 1.8, barracks: true, h: 66, desc: '병사를 배치해 지상 적을 막는 방어 거점' },
 };
 const ENEMIES = {
   crawler: { name: '고블린 정찰병', img: 'enemy_crawler', hp: 48,  speed: 1.35, reward: 6,  h: 58,  dmg: 1 },
@@ -107,6 +107,7 @@ const ASSET_CANDIDATES = {
   hero_stage1: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage1.webp'],
   hero_stage2: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage2.webp'],
   hero_stage3: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage3.webp'],
+  friendly_soldier: ['assets/units/foot-soldier.png', 'assets/img/hero_stage1.webp'],
 };
 const imgSources = (n) => {
   if (window.IMG_DATA && window.IMG_DATA[n]) return [window.IMG_DATA[n]];
@@ -126,7 +127,7 @@ const loadImg = (n) => new Promise((res) => {
   tryNext();
 });
 const IMG_NAMES = ['map_pad', 'map_core', 'map_path', 'map_decor', 'tower_ballista', 'tower_mortar', 'tower_vine', 'tower_wall',
-  'enemy_crawler', 'enemy_soldier', 'enemy_armored', 'enemy_shaman', 'enemy_flyer', 'enemy_golem', 'enemy_boss', 'hero_stage1', 'hero_stage2', 'hero_stage3'];
+  'enemy_crawler', 'enemy_soldier', 'enemy_armored', 'enemy_shaman', 'enemy_flyer', 'enemy_golem', 'enemy_boss', 'hero_stage1', 'hero_stage2', 'hero_stage3', 'friendly_soldier'];
 
 // ---------- state ----------
 const cv = document.getElementById('game'); cv.width = W; cv.height = H;
@@ -134,7 +135,7 @@ const ctx = cv.getContext('2d');
 const $ = (id) => document.getElementById(id);
 const S = {
   gold: START_GOLD, lives: START_LIVES, wave: 0, phase: 'prep', speed: 1,
-  towers: new Map(), enemies: [], shots: [], fx: [], queue: [], spawnT: 0,
+  towers: new Map(), guards: [], enemies: [], shots: [], fx: [], queue: [], spawnT: 0,
   build: null, sel: null, hover: null, time: 0, cd: { burst: 0, root: 0, bloom: 0 },
   heroStage: 1, over: false,
 };
@@ -159,6 +160,31 @@ function applyDamage(e, amount, kind = 'physical') {
   if (kind === 'physical' && d.armor) dealt *= (1 - d.armor);
   e.hp -= dealt;
   return dealt;
+}
+function nearestPathD(gx, gy) {
+  let bestD = 0, bestDist = Infinity;
+  for (let d = 0; d <= total; d += 0.08) {
+    const [px, py] = posAt(d), dd = Math.hypot(px - gx, py - gy);
+    if (dd < bestDist) { bestDist = dd; bestD = d; }
+  }
+  return bestD;
+}
+function syncBarracks(t, towerKey) {
+  if (!TOWERS[t.type].barracks) return;
+  const wanted = Math.min(4, 2 + (t.lvl - 1));
+  const homeD = nearestPathD(t.i + 0.5, t.j + 0.5);
+  let own = S.guards.filter((x) => x.towerKey === towerKey);
+  while (own.length < wanted) {
+    const slot = own.length;
+    const hp = 90 + 40 * (t.lvl - 1);
+    const unit = { towerKey, slot, homeD: homeD + (slot - (wanted - 1) / 2) * 0.16, hp, max: hp, cd: 0, dead: false, respawn: 0, target: null };
+    S.guards.push(unit); own.push(unit);
+  }
+  for (const unit of own) {
+    unit.max = 90 + 40 * (t.lvl - 1);
+    unit.hp = Math.min(unit.max, Math.max(unit.hp, unit.max * 0.65));
+    unit.homeD = homeD + (unit.slot - (wanted - 1) / 2) * 0.16;
+  }
 }
 
 // ---------- waves ----------
@@ -197,9 +223,43 @@ function update(dt) {
   }
   // enemies
   for (const e of S.enemies) {
-    const d = ENEMIES[e.type];
     e.slow = 1;
+    e.blocked = false;
   }
+  // Barracks guards engage nearby ground enemies and physically stop them.
+  for (const guard of S.guards) {
+    const tower = S.towers.get(guard.towerKey);
+    if (!tower) { guard.remove = true; continue; }
+    if (guard.dead) {
+      guard.respawn -= dt;
+      if (guard.respawn <= 0) { guard.dead = false; guard.hp = guard.max; guard.target = null; }
+      continue;
+    }
+    let target = guard.target;
+    if (!target || target.dead || ENEMIES[target.type].fly || Math.abs(target.d - guard.homeD) > 0.85) {
+      target = null;
+      let best = 0.85;
+      for (const e of S.enemies) {
+        if (e.dead || ENEMIES[e.type].fly) continue;
+        const dd = Math.abs(e.d - guard.homeD);
+        if (dd < best) { best = dd; target = e; }
+      }
+      guard.target = target;
+    }
+    if (target) {
+      target.blocked = true;
+      guard.cd -= dt;
+      if (guard.cd <= 0) {
+        guard.cd = Math.max(0.55, 0.95 - 0.08 * (tower.lvl - 1));
+        applyDamage(target, (15 + 8 * (tower.lvl - 1)) * heroBuff(tower), 'physical');
+        const p = posAt(target.d); addFx({ gx:p[0], gy:p[1], r:0.22, dur:0.18, color:'255,230,170', ring:true, alpha:0.8 });
+      }
+      const ed = ENEMIES[target.type];
+      guard.hp -= (7 + ed.dmg * 5) * dt;
+      if (guard.hp <= 0) { guard.dead = true; guard.respawn = Math.max(5, 9 - tower.lvl); guard.target = null; }
+    }
+  }
+  S.guards = S.guards.filter((x) => !x.remove);
   for (const t of S.towers.values()) {
     const st = towerStats(t), [tx, ty] = [t.i + 0.5, t.j + 0.5];
     const slowing = TOWERS[t.type].slow;
@@ -250,7 +310,7 @@ function update(dt) {
     if (e.dead) continue;
     e.root = Math.max(0, e.root - dt);
     const d = ENEMIES[e.type];
-    let m = e.slow; if (e.root > 0) m = Math.min(m, 0.08);
+    let m = e.slow; if (e.root > 0) m = Math.min(m, 0.08); if (e.blocked && !d.fly) m = 0;
     e.d += d.speed * m * dt;
     if (e.d >= total) {
       e.dead = true; S.lives -= d.dmg; addFx({ gx: CORE[0] + 0.5, gy: CORE[1] + 0.5, r: 1.2, dur: 0.5, color: '255,90,90', ring: true, alpha: 0.6 });
@@ -387,6 +447,16 @@ function render() {
       if (heroBuff(t) > 1) { ctx.fillStyle = 'rgba(120,255,160,.9)'; ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('▲', c.x + 30, c.y + 26); }
     } });
   }
+  for (const guard of S.guards) {
+    if (guard.dead) continue;
+    const targetD = guard.target && !guard.target.dead ? guard.target.d : guard.homeD;
+    const [gx, gy] = posAt(targetD), c = iso(gx, gy);
+    items.push({ d: gx + gy + 0.46 + guard.slot * 0.001, f: () => {
+      const dx = (guard.slot % 2 === 0 ? -9 : 9);
+      sprite('friendly_soldier', c.x + dx, c.y + 5, 54, guard.slot % 2 === 1);
+      hpBar(c.x + dx, c.y - 55, 30, guard.hp / guard.max);
+    }});
+  }
   for (const e of S.enemies) {
     const [gx, gy] = posAt(e.d), c = iso(gx, gy), d = ENEMIES[e.type], lift = d.fly ? 34 + Math.sin(S.time * 6 + e.d) * 4 : 0;
     items.push({ d: gx + gy + 0.5, f: () => {
@@ -441,6 +511,7 @@ cv.addEventListener('pointerdown', (ev) => {
     const d = TOWERS[S.build];
     if (S.gold < d.cost) { toast('골드가 부족합니다'); return; }
     S.gold -= d.cost; S.towers.set(k, { type: S.build, i, j, lvl: 1, cool: 0 });
+    syncBarracks(S.towers.get(k), k);
     addFx({ gx: i + 0.5, gy: j + 0.5, r: 0.9, dur: 0.4, color: '120,255,160', ring: true, fill: true, alpha: 0.8 });
     S.sel = k; refreshHUD(); return;
   }
@@ -450,8 +521,8 @@ document.querySelectorAll('.tbtn').forEach((b) => b.addEventListener('click', ()
 for (const k in SKILLS) $('sk_' + k).addEventListener('click', () => useSkill(k));
 $('startBtn').addEventListener('click', startWave);
 $('speedBtn').addEventListener('click', () => { S.speed = S.speed === 1 ? 2 : 1; $('speedBtn').textContent = `x${S.speed}`; });
-$('upBtn').addEventListener('click', () => { const t = S.towers.get(S.sel); if (!t || t.lvl >= 3 || S.gold < upgradeCost(t)) return; S.gold -= upgradeCost(t); t.lvl++; addFx({ gx: t.i + 0.5, gy: t.j + 0.5, r: 1, dur: 0.5, color: '255,220,90', ring: true, fill: true, alpha: 0.8 }); refreshHUD(); });
-$('sellBtn').addEventListener('click', () => { const t = S.towers.get(S.sel); if (!t) return; S.gold += sellValue(t); S.towers.delete(S.sel); S.sel = null; refreshHUD(); });
+$('upBtn').addEventListener('click', () => { const t = S.towers.get(S.sel); if (!t || t.lvl >= 3 || S.gold < upgradeCost(t)) return; S.gold -= upgradeCost(t); t.lvl++; syncBarracks(t, S.sel); addFx({ gx: t.i + 0.5, gy: t.j + 0.5, r: 1, dur: 0.5, color: '255,220,90', ring: true, fill: true, alpha: 0.8 }); refreshHUD(); });
+$('sellBtn').addEventListener('click', () => { const t = S.towers.get(S.sel); if (!t) return; S.gold += sellValue(t); const soldKey = S.sel; S.towers.delete(soldKey); S.guards = S.guards.filter((x) => x.towerKey !== soldKey); S.sel = null; refreshHUD(); });
 $('retry').addEventListener('click', () => location.reload());
 addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
@@ -463,7 +534,7 @@ addEventListener('keydown', (e) => {
 // ---------- boot ----------
 async function boot() {
   await Promise.all(IMG_NAMES.map(loadImg));
-  document.querySelectorAll('.tbtn img').forEach((im) => { im.src = imgSrc(TOWERS[im.closest('.tbtn').dataset.t].img); });
+  document.querySelectorAll('.tbtn img').forEach((im) => { const n = TOWERS[im.closest('.tbtn').dataset.t].img; im.src = IMG[n]?.src || imgSources(n)[0]; });
   refreshHUD();
   let last = performance.now();
   const loop = (now) => { const dt = Math.min(0.05, (now - last) / 1000); last = now; for (let s = 0; s < S.speed; s++) update(dt); render(); if (S.frame !== undefined) S.frame++; requestAnimationFrame(loop); };

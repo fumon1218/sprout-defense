@@ -244,6 +244,25 @@ function startWave() {
   if (st !== S.heroStage) { S.heroStage = st; toast(`지휘관의 전투 오라가 ${st === 2 ? '강화' : '최대로 강화'}되었습니다!`); }
   refreshHUD();
 }
+function seedDemo() {
+  const demoTowers = [
+    ['2,2','ballista',2,'first'],
+    ['5,3','vine',2,'strong'],
+    ['6,6','mortar',2,'weak'],
+    ['4,8','wall',2,'first']
+  ];
+  for (const [k,type,lvl,targetMode] of demoTowers) {
+    if (!pads.has(k)) continue;
+    const [i,j] = k.split(',').map(Number);
+    S.towers.set(k,{type,i,j,lvl,cool:0,targetMode});
+    syncBarracks(S.towers.get(k), k);
+  }
+  S.gold = 180;
+  S.wave = 5;
+  S.phase = 'prep';
+  refreshHUD();
+  showWaveIntro(6);
+}
 function spawn(type) {
   const d = ENEMIES[type], scale = 1 + 0.16 * (S.wave - 1);
   const e = { type, hp: d.hp * scale, max: d.hp * scale, d: 0, slow: 1, root: 0, dead: false };
@@ -647,6 +666,7 @@ async function boot() {
   await Promise.all(IMG_NAMES.map(loadImg));
   document.querySelectorAll('.tbtn img').forEach((im) => { const n = TOWERS[im.closest('.tbtn').dataset.t].img; im.src = IMG[n]?.src || imgSources(n)[0]; });
   refreshHUD();
+  if (new URLSearchParams(location.search).get('demo') === '1') seedDemo();
   let last = performance.now();
   const loop = (now) => { const dt = Math.min(0.05, (now - last) / 1000); last = now; for (let s = 0; s < S.speed; s++) update(dt); render(); if (S.frame !== undefined) S.frame++; requestAnimationFrame(loop); };
   requestAnimationFrame(loop);

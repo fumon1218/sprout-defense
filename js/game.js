@@ -135,9 +135,9 @@ const ASSET_CANDIDATES = {
   enemy_golem: ['assets/img/enemy_golem.webp'],
   enemy_boss: ['assets/img/enemy_boss.webp'],
 
-  hero_stage1: ['assets/units/hero-knight.webp'],
-  hero_stage2: ['assets/units/hero-knight.webp'],
-  hero_stage3: ['assets/units/hero-knight.webp'],
+  hero_stage1: ['assets/heroes/ranger-hero.webp'],
+  hero_stage2: ['assets/heroes/ranger-hero.webp'],
+  hero_stage3: ['assets/heroes/ranger-hero.webp'],
   friendly_soldier: ['assets/units/friendly-knight.webp'],
 
   // Disable unverified animation atlases in the public preview.
@@ -788,8 +788,13 @@ function drawCleanImpactFx(f){
 }
 
 function drawHero(c) {
-  ring(HERO_CELL[0] + 0.5, HERO_CELL[1] + 0.5, 2.7, '120,255,160', 0.35 + 0.1 * Math.sin(S.time * 2), true, true);
-  const st = S.heroStage, hgt = st === 1 ? 190 : st === 2 ? 200 : 214;
+  const st = S.heroStage, hgt = st === 1 ? 118 : st === 2 ? 124 : 132;
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(c.x, c.y + 8, 46, 20, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(70,40,15,.20)';
+  ctx.fill();
+  ctx.restore();
   if (hero.ok && hero.models[st]) {
     const cvs = hero.view.render(hero.models[st], Math.sin(S.time * 0.9) * 0.45);
     const w = hgt * (cvs.width / cvs.height);
@@ -800,11 +805,12 @@ function drawHero(c) {
   }
 }
 function heroLabel() {
-  const c = iso(HERO_CELL[0] + 0.5, HERO_CELL[1] + 0.5);
-  ctx.font = '600 15px system-ui, sans-serif'; ctx.textAlign = 'center';
-  const t = `왕국 지휘관 · ${['', '기본', '강화', '최대'][S.heroStage]}`;
-  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(c.x - ctx.measureText(t).width / 2 - 6, c.y + 40, ctx.measureText(t).width + 12, 22);
-  ctx.fillStyle = '#d9ffd9'; ctx.fillText(t, c.x, c.y + 56);
+  const c = HERO_SCREEN;
+  ctx.font = '600 14px system-ui, sans-serif'; ctx.textAlign = 'center';
+  const t = '왕국 레인저';
+  ctx.fillStyle = 'rgba(0,0,0,.58)';
+  ctx.fillRect(c.x - ctx.measureText(t).width / 2 - 6, c.y + 18, ctx.measureText(t).width + 12, 21);
+  ctx.fillStyle = '#efffe8'; ctx.fillText(t, c.x, c.y + 34);
 }
 
 function render() {
@@ -821,9 +827,18 @@ function render() {
   // hover / selection highlights
   if (S.hover && (S.build ? pads.has(key(...S.hover)) && !S.towers.has(key(...S.hover)) : true) && S.hover[0] >= 0) {
     const ok = pads.has(key(...S.hover)) && !S.towers.has(key(...S.hover));
-    if (ok) diamond(iso(S.hover[0] + 0.5, S.hover[1] + 0.5), 'rgba(120,255,160,.22)', 'rgba(120,255,160,.8)');
+    if (ok) {
+      const p = padScreen(key(...S.hover));
+      ctx.save(); ctx.beginPath(); ctx.ellipse(p.x,p.y,40,20,0,0,Math.PI*2);
+      ctx.fillStyle='rgba(120,255,160,.18)'; ctx.fill();
+      ctx.strokeStyle='rgba(120,255,160,.9)'; ctx.lineWidth=2; ctx.stroke(); ctx.restore();
+    }
   }
-  if (S.build) for (const k of pads) { if (!S.towers.has(k)) { const [i, j] = k.split(',').map(Number); diamond(iso(i + 0.5, j + 0.5), null, 'rgba(120,255,160,.35)'); } }
+  if (S.build) for (const k of pads) if (!S.towers.has(k)) {
+    const p=padScreen(k);
+    ctx.save(); ctx.beginPath(); ctx.ellipse(p.x,p.y,39,19,0,0,Math.PI*2);
+    ctx.strokeStyle='rgba(120,255,160,.55)'; ctx.lineWidth=2; ctx.setLineDash([6,5]); ctx.stroke(); ctx.restore();
+  }
   if (S.sel) { const t = S.towers.get(S.sel); if (t) ring(t.i + 0.5, t.j + 0.5, towerStats(t).range, '120,255,160', 0.8, true); }
   // ground effects
   for (const f of S.fx) if (f.ring) { const p = f.t / f.dur; ring(f.gx, f.gy, f.r * (f.fill ? 0.6 + 0.4 * p : 1), f.color, (f.alpha || 0.5) * (1 - p), f.fill); }

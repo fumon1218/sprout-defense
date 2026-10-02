@@ -911,19 +911,40 @@ addEventListener('keydown', (e) => {
 
 // ---------- boot ----------
 async function boot() {
-  await Promise.all(IMG_NAMES.map(loadImg));
-  document.querySelectorAll('.tbtn img').forEach((im) => { const n = TOWERS[im.closest('.tbtn').dataset.t].img; im.src = IMG[n]?.src || imgSources(n)[0]; });
+  // Show the game immediately. Asset loading continues in the background so
+  // a missing or large optional file can never leave the battlefield black.
   refreshHUD();
   if (new URLSearchParams(location.search).get('demo') === '1') seedDemo();
+
   let last = performance.now();
-  const loop = (now) => { const dt = Math.min(0.05, (now - last) / 1000); last = now; for (let s = 0; s < S.speed; s++) update(dt); render(); if (S.frame !== undefined) S.frame++; requestAnimationFrame(loop); };
+  const loop = (now) => {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    for (let s = 0; s < S.speed; s++) update(dt);
+    render();
+    if (S.frame !== undefined) S.frame++;
+    requestAnimationFrame(loop);
+  };
   requestAnimationFrame(loop);
-  // 3D hero (WebGL); falls back to the 2D sprite when unavailable
+
+  // Load 2D artwork without blocking the game loop.
+  Promise.all(IMG_NAMES.map(loadImg)).then(() => {
+    document.querySelectorAll('.tbtn img').forEach((im) => {
+      const n = TOWERS[im.closest('.tbtn').dataset.t].img;
+      im.src = IMG[n]?.src || imgSources(n)[0];
+    });
+  }).catch((err) => console.warn('2D asset load warning:', err));
+
+  // 3D hero is optional and loads after the playable scene is already visible.
   try {
     hero.view = new GLBView(288, 320);
-    await Promise.all([1, 2, 3].map(async (n) => { hero.models[n] = window.HERO_GLB ? await hero.view.loadBuffer(b64buf(window.HERO_GLB[n])) : await hero.view.load(`assets/hero/hero_stage${n}.glb`); }));
+    await Promise.all([1, 2, 3].map(async (n) => {
+      hero.models[n] = await hero.view.load(`assets/hero/hero_stage${n}.glb`);
+    }));
     hero.ok = true; $('heroTag').textContent = '3D';
-  } catch (err) { console.warn('3D hero disabled:', err); $('heroTag').textContent = '2D'; }
+  } catch (err) {
+    console.warn('3D hero disabled:', err);
+    $('heroTag').textContent = '2D';
+  }
   window.__game = { S, pads, iso, hero, update, render, startWave, ready: true };
 }
 boot();

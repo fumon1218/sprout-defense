@@ -20,6 +20,8 @@ const TOWERS = {
 const ENEMIES = {
   crawler: { name: '고블린 정찰병', img: 'enemy_crawler', hp: 48,  speed: 1.35, reward: 6,  h: 58,  dmg: 1 },
   soldier: { name: '오크 전사',     img: 'enemy_soldier', hp: 130, speed: 0.92, reward: 11, h: 88,  dmg: 1 },
+  armored: { name: '갑옷 오크',     img: 'enemy_armored', hp: 220, speed: 0.72, reward: 17, h: 96,  dmg: 2, armor: 0.45 },
+  shaman:  { name: '오크 샤먼',     img: 'enemy_shaman',  hp: 115, speed: 0.82, reward: 15, h: 90,  dmg: 1, heal: 9 },
   flyer:   { name: '동굴 박쥐',     img: 'enemy_flyer',   hp: 76,  speed: 1.55, reward: 9,  h: 60,  dmg: 1, fly: true },
   golem:   { name: '산악 트롤',     img: 'enemy_golem',   hp: 440, speed: 0.58, reward: 28, h: 118, dmg: 3 },
   boss:    { name: '오우거 군주',   img: 'enemy_boss',    hp: 2300, speed: 0.48, reward: 150, h: 160, dmg: 8 },
@@ -28,13 +30,14 @@ const WAVES = [
   [['crawler', 8]],
   [['crawler', 12]],
   [['crawler', 8], ['soldier', 4]],
-  [['soldier', 8], ['crawler', 8]],
+  [['soldier', 6], ['armored', 3]],
   [['flyer', 6], ['crawler', 10]],
+  [['shaman', 2], ['soldier', 8], ['armored', 3]],
   [['golem', 2], ['soldier', 8]],
-  [['flyer', 8], ['soldier', 10]],
-  [['golem', 4], ['crawler', 16]],
-  [['golem', 5], ['soldier', 12], ['flyer', 6]],
-  [['boss', 1], ['golem', 4], ['soldier', 12], ['flyer', 6]],
+  [['flyer', 8], ['shaman', 3], ['armored', 5]],
+  [['golem', 4], ['crawler', 16], ['shaman', 3]],
+  [['golem', 5], ['soldier', 10], ['armored', 6], ['flyer', 6]],
+  [['boss', 1], ['golem', 4], ['armored', 6], ['shaman', 4], ['flyer', 6]],
 ];
 const SKILLS = {
   burst: { name: '화살비', cd: 15, key: 'Q' },
@@ -96,6 +99,8 @@ const ASSET_CANDIDATES = {
   tower_wall: ['assets/towers/barracks/barracks-l1.png', 'assets/img/tower_wall.webp'],
   enemy_crawler: ['assets/enemies/goblin-scout.png', 'assets/img/enemy_crawler.webp'],
   enemy_soldier: ['assets/enemies/orc-warrior.png', 'assets/img/enemy_soldier.webp'],
+  enemy_armored: ['assets/enemies/armored-orc.png', 'assets/img/enemy_soldier.webp'],
+  enemy_shaman: ['assets/enemies/orc-shaman.png', 'assets/img/enemy_soldier.webp'],
   enemy_flyer: ['assets/enemies/fantasy-bat.png', 'assets/img/enemy_flyer.webp'],
   enemy_golem: ['assets/enemies/mountain-troll.png', 'assets/img/enemy_golem.webp'],
   enemy_boss: ['assets/enemies/boss-ogre-king.png', 'assets/img/enemy_boss.webp'],
@@ -121,7 +126,7 @@ const loadImg = (n) => new Promise((res) => {
   tryNext();
 });
 const IMG_NAMES = ['map_pad', 'map_core', 'map_path', 'map_decor', 'tower_ballista', 'tower_mortar', 'tower_vine', 'tower_wall',
-  'enemy_crawler', 'enemy_soldier', 'enemy_flyer', 'enemy_golem', 'enemy_boss', 'hero_stage1', 'hero_stage2', 'hero_stage3'];
+  'enemy_crawler', 'enemy_soldier', 'enemy_armored', 'enemy_shaman', 'enemy_flyer', 'enemy_golem', 'enemy_boss', 'hero_stage1', 'hero_stage2', 'hero_stage3'];
 
 // ---------- state ----------
 const cv = document.getElementById('game'); cv.width = W; cv.height = H;
@@ -148,6 +153,13 @@ const upgradeCost = (t) => Math.round(TOWERS[t.type].cost * (t.lvl === 1 ? 0.8 :
 const sellValue = (t) => { let v = TOWERS[t.type].cost; for (let l = 1; l < t.lvl; l++) v += Math.round(TOWERS[t.type].cost * (l === 1 ? 0.8 : 1.2)); return Math.round(v * 0.6); };
 function toast(msg) { const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 1800); }
 const addFx = (o) => S.fx.push({ t: 0, dur: 0.5, ...o });
+function applyDamage(e, amount, kind = 'physical') {
+  const d = ENEMIES[e.type];
+  let dealt = amount;
+  if (kind === 'physical' && d.armor) dealt *= (1 - d.armor);
+  e.hp -= dealt;
+  return dealt;
+}
 
 // ---------- waves ----------
 function startWave() {
@@ -197,7 +209,7 @@ function update(dt) {
         const [ex, ey] = posAt(e.d);
         if (Math.hypot(ex - tx, ey - ty) <= st.range) {
           if (slowing && !ENEMIES[e.type].fly) e.slow = Math.min(e.slow, st.slow);
-          if (st.dot) e.hp -= st.dot * heroBuff(t) * dt;
+          if (st.dot) applyDamage(e, st.dot * heroBuff(t) * dt, 'magic');
         }
       }
       if (slowing || st.dot) { t.pulse = (t.pulse || 0) + dt; if (t.pulse > 1.2) { t.pulse = 0; addFx({ gx: tx, gy: ty, r: st.range, dur: 0.9, color: TOWERS[t.type].dot ? '95,220,140' : '140,200,255', ring: true, alpha: 0.35 }); } }
@@ -215,13 +227,23 @@ function update(dt) {
           t.cool = st.cd;
           const dmg = st.dmg * heroBuff(t);
           if (t.type === 'ballista') {
-            best.hp -= dmg;
+            applyDamage(best, dmg, 'physical');
             const p = posAt(best.d); S.shots.push({ kind: 'bolt', from: [tx, ty], to: p, t: 0, dur: 0.14 });
           } else {
             const p = posAt(best.d); S.shots.push({ kind: 'seed', from: [tx, ty], to: p, t: 0, dur: 0.65, dmg, splash: st.splash });
           }
         }
       }
+    }
+  }
+  // Shaman support aura: nearby ground enemies regenerate slowly.
+  for (const sh of S.enemies) {
+    if (sh.dead || !ENEMIES[sh.type].heal) continue;
+    const [sx, sy] = posAt(sh.d);
+    for (const ally of S.enemies) {
+      if (ally.dead || ally === sh || ENEMIES[ally.type].fly) continue;
+      const [ax, ay] = posAt(ally.d);
+      if (Math.hypot(ax - sx, ay - sy) <= 1.8) ally.hp = Math.min(ally.max, ally.hp + ENEMIES[sh.type].heal * dt);
     }
   }
   for (const e of S.enemies) {
@@ -241,7 +263,7 @@ function update(dt) {
     s.t += dt;
     if (s.kind === 'seed' && !s.done && s.t >= s.dur) {
       s.done = true;
-      for (const e of S.enemies) { const [ex, ey] = posAt(e.d); if (Math.hypot(ex - s.to[0], ey - s.to[1]) <= s.splash) e.hp -= s.dmg; }
+      for (const e of S.enemies) { const [ex, ey] = posAt(e.d); if (Math.hypot(ex - s.to[0], ey - s.to[1]) <= s.splash) applyDamage(e, s.dmg, 'physical'); }
       addFx({ gx: s.to[0], gy: s.to[1], r: s.splash, dur: 0.4, color: '255,150,60', ring: true, alpha: 0.7, fill: true });
     }
   }
@@ -262,7 +284,7 @@ function useSkill(k) {
   if (S.over || S.cd[k] > 0) return;
   const hx = HERO_CELL[0] + 0.5, hy = HERO_CELL[1] + 0.5;
   if (k === 'burst') {
-    for (const e of S.enemies) { const [ex, ey] = posAt(e.d); if (Math.hypot(ex - hx, ey - hy) <= 2.8) e.hp -= 140 + S.wave * 12; }
+    for (const e of S.enemies) { const [ex, ey] = posAt(e.d); if (Math.hypot(ex - hx, ey - hy) <= 2.8) applyDamage(e, 140 + S.wave * 12, 'magic'); }
     addFx({ gx: hx, gy: hy, r: 2.8, dur: 0.6, color: '120,255,150', ring: true, fill: true, alpha: 0.8 });
   } else if (k === 'root') {
     for (const e of S.enemies) { const [ex, ey] = posAt(e.d); if (Math.hypot(ex - hx, ey - hy) <= 3.8) e.root = 4; }

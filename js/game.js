@@ -214,7 +214,10 @@ function startWave() {
 }
 function spawn(type) {
   const d = ENEMIES[type], scale = 1 + 0.16 * (S.wave - 1);
-  S.enemies.push({ type, hp: d.hp * scale, max: d.hp * scale, d: 0, slow: 1, root: 0, dead: false });
+  const e = { type, hp: d.hp * scale, max: d.hp * scale, d: 0, slow: 1, root: 0, dead: false };
+  if (type === 'boss') e.special = 4.5;
+  S.enemies.push(e);
+  if (type === 'boss') toast('보스 등장! 오우거 군주가 진격합니다!');
 }
 
 // ---------- update ----------
@@ -325,8 +328,31 @@ function update(dt) {
     if (e.dead) continue;
     e.root = Math.max(0, e.root - dt);
     const d = ENEMIES[e.type];
+
+    if (e.type === 'boss') {
+      e.special -= dt;
+      if (e.special <= 0) {
+        e.special = 6.5;
+        const [bx, by] = posAt(e.d);
+        addFx({ gx: bx, gy: by, r: 1.55, dur: 0.55, color: '255,120,70', ring: true, fill: true, alpha: 0.8 });
+        for (const guard of S.guards) {
+          if (guard.dead) continue;
+          const gd = guard.target && !guard.target.dead ? guard.target.d : guard.homeD;
+          if (Math.abs(gd - e.d) <= 1.25) {
+            guard.hp -= 48;
+            if (guard.hp <= 0) { guard.dead = true; guard.respawn = 7; guard.target = null; }
+          }
+        }
+        toast('오우거 군주의 대지 강타!');
+      }
+    }
+
+    let rage = 1;
+    if (e.type === 'boss' && e.hp / e.max <= 0.25) rage = 1.3;
+    else if (e.type === 'boss' && e.hp / e.max <= 0.5) rage = 1.15;
+
     let m = e.slow; if (e.root > 0) m = Math.min(m, 0.08); if (e.blocked && !d.fly) m = 0;
-    e.d += d.speed * m * dt;
+    e.d += d.speed * m * rage * dt;
     if (e.d >= total) {
       e.dead = true; S.lives -= d.dmg; addFx({ gx: CORE[0] + 0.5, gy: CORE[1] + 0.5, r: 1.2, dur: 0.5, color: '255,90,90', ring: true, alpha: 0.6 });
       refreshHUD(); if (S.lives <= 0) endGame(false);
@@ -483,6 +509,10 @@ function render() {
       sprite(d.img, c.x, c.y + 6 - lift - bob, d.h);
       if (e.root > 0) { ctx.strokeStyle = 'rgba(90,220,120,.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(c.x, c.y + 4, 24, 9, 0, 0, 7); ctx.stroke(); }
       hpBar(c.x, c.y + 6 - lift - d.h - 8, Math.max(30, d.h * 0.5), e.hp / e.max);
+      if (e.type === 'boss' && e.hp / e.max <= 0.5) {
+        ctx.save(); ctx.globalAlpha = 0.35 + 0.15 * Math.sin(S.time * 8); ctx.strokeStyle = '#ff6a3d'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.ellipse(c.x, c.y + 2, 34, 12, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      }
     } });
   }
   items.sort((a, b) => a.d - b.d); for (const it of items) it.f();

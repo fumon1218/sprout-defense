@@ -132,6 +132,7 @@ const ASSET_CANDIDATES = {
   anim_knight_walk: ['assets/animations/knight/walk-strip.webp'],
   anim_knight_attack: ['assets/animations/knight/attack-strip.webp'],
   anim_knight_death: ['assets/animations/knight/death-strip.webp'],
+  tower_combat_atlas: ['assets/animations/towers/tower-combat-atlas.webp'],
   projectile_magic: ['assets/projectiles/arcane-orb.webp', 'assets/projectiles/arcane-orb.png'],
   projectile_cannon: ['assets/projectiles/cannonball.webp', 'assets/projectiles/cannonball.png'],
   vfx_explosion: ['assets/vfx/explosion.webp', 'assets/vfx/explosion.png'],
@@ -161,6 +162,7 @@ const IMG_NAMES = ['map_background', 'map_pad', 'map_core', 'map_path', 'map_dec
   'enemy_crawler', 'enemy_soldier', 'enemy_armored', 'enemy_shaman', 'enemy_flyer', 'enemy_golem', 'enemy_boss',
   'hero_stage1', 'hero_stage2', 'hero_stage3', 'friendly_soldier',
   'anim_knight_idle', 'anim_knight_walk', 'anim_knight_attack', 'anim_knight_death',
+  'tower_combat_atlas',
   'projectile_magic', 'projectile_cannon', 'vfx_explosion'];
 
 // ---------- state ----------
@@ -386,7 +388,7 @@ function update(dt) {
         const best = chooseTarget(t, candidates);
         if (best) {
           t.cool = st.cd;
-          t.attackT = t.type === 'mortar' ? 0.28 : 0.18;
+          t.attackT = t.type === 'mortar' ? 0.76 : t.type === 'vine' ? 0.50 : 0.34;
           const dmg = st.dmg * heroBuff(t);
           if (t.type === 'ballista') {
             applyDamage(best, dmg, 'physical');
@@ -585,6 +587,30 @@ const ANIM_ATLAS = {
     fps: { idle:7, walk:12, attack:15, death:10 }
   }
 };
+const TOWER_COMBAT_ATLAS = {
+  name:'tower_combat_atlas', frame:64,
+  rows:{
+    archer:{row:0,count:6,dur:.34},
+    mage:{row:1,count:8,dur:.50},
+    artilleryFire:{row:2,count:8,dur:.46},
+    artilleryRecoil:{row:3,count:4,dur:.30}
+  }
+};
+function drawTowerCombatFrame(kind, x, y, h, elapsed, opt={}) {
+  const im=IMG[TOWER_COMBAT_ATLAS.name], meta=TOWER_COMBAT_ATLAS.rows[kind];
+  if(!im || !meta) return false;
+  const p=Math.max(0,Math.min(.999,elapsed/meta.dur));
+  const frame=Math.min(meta.count-1,Math.floor(p*meta.count));
+  const fs=TOWER_COMBAT_ATLAS.frame, sx=frame*fs, sy=meta.row*fs;
+  const scale=h/fs, dw=fs*scale, dh=fs*scale;
+  ctx.save();
+  ctx.globalAlpha=opt.alpha==null?1:opt.alpha;
+  ctx.translate(x+(opt.dx||0),y+(opt.dy||0));
+  if(opt.flip) ctx.scale(-1,1);
+  ctx.drawImage(im,sx,sy,fs,fs,-dw/2,-dh,dw,dh);
+  ctx.restore();
+  return true;
+}
 function drawAtlasAnim(name, state, x, y, h, time, opt = {}) {
   const im = IMG[name], meta = ANIM_ATLAS[name];
   if (!im || !meta || meta.rows[state] == null) return false;
@@ -681,14 +707,33 @@ function render() {
     const c = iso(t.i + 0.5, t.j + 0.5), d = TOWERS[t.type];
     items.push({ d: t.i + t.j + 1, f: () => {
       const atk = t.attackT || 0;
-      let dx = 0, dy = 0, rot = 0, sx = 1, sy = 1;
-      if (atk > 0) {
-        const p = atk / (t.type === 'mortar' ? 0.28 : 0.18);
-        if (t.type === 'mortar') { dy = 5 * Math.sin(p * Math.PI); sx = 1 + 0.05 * p; sy = 1 - 0.06 * p; }
-        else if (t.type === 'ballista') { dx = -4 * p; rot = -0.025 * p; }
-        else if (t.type === 'vine') { dy = -3 * Math.sin(p * Math.PI); sx = sy = 1 + 0.035 * Math.sin(p * Math.PI); }
+      const towerH=d.h*(1+.07*(t.lvl-1));
+      let animated=false;
+      if(atk>0 && IMG.tower_combat_atlas){
+        if(t.type==='ballista'){
+          // Keep the wooden tower body stable; only animate the archer operator.
+          spriteMotion(towerSpriteName(t),c.x,c.y+10,towerH,{});
+          const elapsed=.34-atk;
+          animated=drawTowerCombatFrame('archer',c.x,c.y-18,64,elapsed,{});
+        }else if(t.type==='vine'){
+          animated=drawTowerCombatFrame('mage',c.x,c.y+10,towerH,.50-atk,{});
+        }else if(t.type==='mortar'){
+          const elapsed=.76-atk;
+          if(elapsed<=.46) animated=drawTowerCombatFrame('artilleryFire',c.x,c.y+10,towerH,elapsed,{});
+          else animated=drawTowerCombatFrame('artilleryRecoil',c.x,c.y+10,towerH,elapsed-.46,{});
+        }
       }
-      spriteMotion(towerSpriteName(t), c.x, c.y + 10, d.h * (1 + 0.07 * (t.lvl - 1)), {dx,dy,rot,sx,sy});
+      if(!animated){
+        let dx=0,dy=0,rot=0,sx=1,sy=1;
+        if(atk>0){
+          const dur=t.type==='mortar'?.76:t.type==='vine'?.50:.34;
+          const p=atk/dur;
+          if(t.type==='mortar'){dy=5*Math.sin(p*Math.PI);sx=1+.05*p;sy=1-.06*p;}
+          else if(t.type==='ballista'){dx=-4*p;rot=-.025*p;}
+          else if(t.type==='vine'){dy=-3*Math.sin(p*Math.PI);sx=sy=1+.035*Math.sin(p*Math.PI);}
+        }
+        spriteMotion(towerSpriteName(t),c.x,c.y+10,towerH,{dx,dy,rot,sx,sy});
+      }
       for (let l = 0; l < t.lvl; l++) { ctx.fillStyle = '#ffd95a'; ctx.beginPath(); ctx.arc(c.x - 12 + l * 12, c.y + 24, 3.6, 0, 7); ctx.fill(); }
       if (heroBuff(t) > 1) { ctx.fillStyle = 'rgba(120,255,160,.9)'; ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('▲', c.x + 30, c.y + 26); }
     } });

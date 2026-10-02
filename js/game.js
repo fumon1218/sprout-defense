@@ -146,10 +146,10 @@ const ASSET_CANDIDATES = {
   anim_knight_walk: [],
   anim_knight_attack: [],
   anim_knight_death: [],
-  tower_combat_atlas: [],
+  tower_combat_atlas: ['assets/animations/towers/tower-combat-atlas.webp'],
 
-  projectile_magic: [],
-  projectile_cannon: [],
+  projectile_magic: ['assets/img/weapon_s.webp'],
+  projectile_cannon: ['assets/img/weapon_c.webp'],
   vfx_explosion: [],
 }
 const imgSources = (n) => {

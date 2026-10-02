@@ -53,7 +53,6 @@ jobs:
           artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
 
 
-# deploy refresh: grassland-map-v1
 
 # public-pages-enabled
 
@@ -62,3 +61,5 @@ jobs:
 
 
 # deploy-refresh-20261002-2010
+
+# deploy refresh: generated-map-assets-v1

@@ -102,9 +102,9 @@ const ASSET_CANDIDATES = {
   // CLEAN PREVIEW MODE:
   // Use one verified legacy art family only. New Stage-1 artwork is reintroduced
   // only after per-asset QA, preventing mixed styles and contaminated crops.
-  map_background: [],
+  map_background: ['assets/maps/grassland/stage1-background.svg'],
   map_pad: [],
-  map_core: ['assets/img/map_core.webp'],
+  map_core: [],
   map_path: [],
   map_decor: [],
 
@@ -517,7 +517,7 @@ function drawBackdrop() {
   const scale = Math.max(W / im.width, H / im.height);
   const dw = im.width * scale, dh = im.height * scale;
   ctx.save();
-  ctx.globalAlpha = 0.72;
+  ctx.globalAlpha = 1;
   ctx.drawImage(im, (W - dw) / 2, (H - dh) / 2, dw, dh);
   ctx.restore();
   return true;
@@ -688,9 +688,12 @@ function render() {
   const grad = ctx.createRadialGradient(W / 2, H / 2, 100, W / 2, H / 2, 700); grad.addColorStop(0, '#28492d'); grad.addColorStop(1, '#0b160d');
   ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
   const hasBackdrop = drawBackdrop();
-  ctx.save(); if (hasBackdrop) ctx.globalAlpha = 0.76;
-  drawGround(); drawGroundDetail();
-  ctx.restore();
+  // The Stage 1 background already contains terrain, road, river, bridge and build pads.
+  // Keep the legacy diamond grid only as a fallback if the map image fails to load.
+  if (!hasBackdrop) {
+    drawGround();
+    drawGroundDetail();
+  }
   // hover / selection highlights
   if (S.hover && (S.build ? pads.has(key(...S.hover)) && !S.towers.has(key(...S.hover)) : true) && S.hover[0] >= 0) {
     const ok = pads.has(key(...S.hover)) && !S.towers.has(key(...S.hover));
@@ -703,7 +706,7 @@ function render() {
   // depth-sorted entities
   const items = [];
   const core = iso(CORE[0] + 0.5, CORE[1] + 0.5);
-  items.push({ d: CORE[0] + CORE[1] + 1, f: () => { drawTileImg('map_core', core, 1.12); } });
+  if (!hasBackdrop && IMG.map_core) items.push({ d: CORE[0] + CORE[1] + 1, f: () => { drawTileImg('map_core', core, 1.12); } });
   for (const k of DECOR) { const [i, j] = k.split(',').map(Number); items.push({ d: i + j, f: () => drawTileImg('map_decor', iso(i + 0.5, j + 0.5), 1.05) }); }
   const hc = iso(HERO_CELL[0] + 0.5, HERO_CELL[1] + 0.5);
   items.push({ d: HERO_CELL[0] + HERO_CELL[1] + 1.2, f: () => drawHero(hc) });

@@ -99,6 +99,7 @@ const DECOR = new Set(['0,9', '9,0', '0,5', '9,3', '5,9', '4,6'].filter((k) => !
 
 // ---------- assets ----------
 const ASSET_CANDIDATES = {
+  map_background: ['assets/maps/grassland/stage1-background.webp'],
   map_pad: ['assets/ui/build-pad.png', 'assets/img/map_pad.webp'],
   map_core: ['assets/props/kingdom-gate.png', 'assets/img/map_core.webp'],
   map_path: ['assets/maps/grassland/road-straight.png', 'assets/img/map_path.webp'],
@@ -144,7 +145,7 @@ const loadImg = (n) => new Promise((res) => {
   };
   tryNext();
 });
-const IMG_NAMES = ['map_pad', 'map_core', 'map_path', 'map_decor',
+const IMG_NAMES = ['map_background', 'map_pad', 'map_core', 'map_path', 'map_decor',
   'tower_ballista', 'tower_ballista_l2', 'tower_ballista_l3',
   'tower_mortar', 'tower_mortar_l2', 'tower_mortar_l3',
   'tower_vine', 'tower_vine_l2', 'tower_vine_l3',
@@ -442,6 +443,17 @@ function drawTileImg(name, c, wScale = 1.06, flip = false) {
   if (flip) ctx.scale(-1, 1);
   ctx.drawImage(im, -w / 2, -w / 4, w, h); ctx.restore(); // diamond centre sits w/4 below the image top
 }
+function drawBackdrop() {
+  const im = IMG.map_background;
+  if (!im) return false;
+  const scale = Math.max(W / im.width, H / im.height);
+  const dw = im.width * scale, dh = im.height * scale;
+  ctx.save();
+  ctx.globalAlpha = 0.72;
+  ctx.drawImage(im, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  ctx.restore();
+  return true;
+}
 function drawGround() {
   for (let s = 0; s <= 2 * N - 2; s++) for (let i = 0; i < N; i++) {
     const j = s - i; if (j < 0 || j >= N) continue;
@@ -497,9 +509,12 @@ function heroLabel() {
 
 function render() {
   ctx.clearRect(0, 0, W, H);
-  const g = ctx.createRadialGradient(W / 2, H / 2, 100, W / 2, H / 2, 700); g.addColorStop(0, '#1a2119'); g.addColorStop(1, '#080b08');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const grad = ctx.createRadialGradient(W / 2, H / 2, 100, W / 2, H / 2, 700); grad.addColorStop(0, '#28492d'); grad.addColorStop(1, '#0b160d');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+  const hasBackdrop = drawBackdrop();
+  ctx.save(); if (hasBackdrop) ctx.globalAlpha = 0.76;
   drawGround(); drawGroundDetail();
+  ctx.restore();
   // hover / selection highlights
   if (S.hover && (S.build ? pads.has(key(...S.hover)) && !S.towers.has(key(...S.hover)) : true) && S.hover[0] >= 0) {
     const ok = pads.has(key(...S.hover)) && !S.towers.has(key(...S.hover));

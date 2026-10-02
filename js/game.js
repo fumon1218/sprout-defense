@@ -116,17 +116,17 @@ const ASSET_CANDIDATES = {
   tower_wall: ['assets/towers/barracks/barracks-l1.webp', 'assets/img/tower_wall.webp'],
   tower_wall_l2: ['assets/towers/barracks/barracks-l2.webp', 'assets/towers/barracks/barracks-l1.webp', 'assets/img/tower_wall.webp'],
   tower_wall_l3: ['assets/towers/barracks/barracks-l3.webp', 'assets/towers/barracks/barracks-l2.webp', 'assets/towers/barracks/barracks-l1.webp', 'assets/img/tower_wall.webp'],
-  enemy_crawler: ['assets/enemies/goblin-scout.png', 'assets/img/enemy_crawler.webp'],
-  enemy_soldier: ['assets/enemies/orc-warrior.png', 'assets/img/enemy_soldier.webp'],
-  enemy_armored: ['assets/enemies/armored-orc.png', 'assets/img/enemy_soldier.webp'],
-  enemy_shaman: ['assets/enemies/orc-shaman.png', 'assets/img/enemy_soldier.webp'],
-  enemy_flyer: ['assets/enemies/fantasy-bat.png', 'assets/img/enemy_flyer.webp'],
-  enemy_golem: ['assets/enemies/mountain-troll.png', 'assets/img/enemy_golem.webp'],
-  enemy_boss: ['assets/enemies/boss-ogre-king.png', 'assets/img/enemy_boss.webp'],
+  enemy_crawler: ['assets/enemies/goblin-scout.webp', 'assets/enemies/goblin-scout.png', 'assets/img/enemy_crawler.webp'],
+  enemy_soldier: ['assets/enemies/orc-warrior.webp', 'assets/enemies/orc-warrior.png', 'assets/img/enemy_soldier.webp'],
+  enemy_armored: ['assets/enemies/armored-orc.webp', 'assets/enemies/armored-orc.png', 'assets/img/enemy_soldier.webp'],
+  enemy_shaman: ['assets/enemies/orc-shaman.webp', 'assets/enemies/orc-shaman.png', 'assets/img/enemy_soldier.webp'],
+  enemy_flyer: ['assets/enemies/fantasy-bat.webp', 'assets/enemies/fantasy-bat.png', 'assets/img/enemy_flyer.webp'],
+  enemy_golem: ['assets/enemies/mountain-troll.webp', 'assets/enemies/mountain-troll.png', 'assets/img/enemy_golem.webp'],
+  enemy_boss: ['assets/enemies/boss-ogre-king.webp', 'assets/enemies/boss-ogre-king.png', 'assets/img/enemy_boss.webp'],
   hero_stage1: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage1.webp'],
   hero_stage2: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage2.webp'],
   hero_stage3: ['assets/heroes/knight-hero.png', 'assets/img/hero_stage3.webp'],
-  friendly_soldier: ['assets/units/foot-soldier.png', 'assets/img/hero_stage1.webp'],
+  friendly_soldier: ['assets/units/foot-soldier.webp', 'assets/units/foot-soldier.png', 'assets/img/hero_stage1.webp'],
 };
 const imgSources = (n) => {
   if (window.IMG_DATA && window.IMG_DATA[n]) return [window.IMG_DATA[n]];
@@ -574,6 +574,16 @@ function render() {
       if (d.fly) { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(c.x, c.y, 22, 8, 0, 0, 7); ctx.fill(); }
       const bob = d.fly ? 0 : Math.abs(Math.sin(S.time * 5 + e.d * 3)) * 3;
       sprite(d.img, c.x, c.y + 6 - lift - bob, d.h);
+      if (e.type === 'armored') {
+        ctx.save(); ctx.fillStyle = 'rgba(160,190,220,.92)'; ctx.strokeStyle = 'rgba(50,75,95,.95)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(c.x + 24, c.y - lift - d.h + 7); ctx.lineTo(c.x + 32, c.y - lift - d.h + 11);
+        ctx.lineTo(c.x + 30, c.y - lift - d.h + 22); ctx.lineTo(c.x + 24, c.y - lift - d.h + 27);
+        ctx.lineTo(c.x + 18, c.y - lift - d.h + 22); ctx.lineTo(c.x + 16, c.y - lift - d.h + 11); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+      }
+      if (e.type === 'shaman') {
+        ctx.save(); ctx.strokeStyle = `rgba(90,235,120,${0.35 + 0.18 * Math.sin(S.time * 5)})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.ellipse(c.x, c.y + 3, RX * 1.15, RY * 1.15, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      }
       if (e.root > 0) { ctx.strokeStyle = 'rgba(90,220,120,.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(c.x, c.y + 4, 24, 9, 0, 0, 7); ctx.stroke(); }
       hpBar(c.x, c.y + 6 - lift - d.h - 8, Math.max(30, d.h * 0.5), e.hp / e.max);
       if (e.type === 'boss' && e.hp / e.max <= 0.5) {

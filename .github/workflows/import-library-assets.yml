@@ -24,9 +24,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f assets/import/library-assets-pack.tar.gz
-          tar -xzf assets/import/library-assets-pack.tar.gz -C .
-          rm -f assets/import/library-assets-pack.tar.gz
+          if compgen -G 'assets/import/packs/*.tar.gz' > /dev/null; then
+            for pack in assets/import/packs/*.tar.gz; do
+              echo "Extracting $pack"
+              tar -xzf "$pack" -C .
+            done
+            rm -rf assets/import/packs
+          elif [ -f assets/import/library-assets-pack.tar.gz ]; then
+            tar -xzf assets/import/library-assets-pack.tar.gz -C .
+            rm -f assets/import/library-assets-pack.tar.gz
+          else
+            echo "No asset import pack found" >&2
+            exit 1
+          fi
           COUNT=$(find assets/library -type f -name '*.webp' | wc -l | tr -d ' ')
           echo "Imported image count: $COUNT"
           test "$COUNT" -eq 144
